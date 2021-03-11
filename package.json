@@ -1,0 +1,11 @@
+{
+  "name": "advanca-voting-dapp",
+  "version": "1.0",
+  "author": "preston4896@me.com",
+  "dependencies": {
+    "@truffle/hdwallet-provider": "^1.2.2",
+    "babel": "^6.23.0",
+    "react": "^17.0.1"
+  },
+  "scripts": {}
+}
