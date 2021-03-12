@@ -45,7 +45,11 @@ contract Vote {
     uint256 public total_proposals;
     mapping (uint256 => Proposal) public Proposals; // Find the proposals with the given ID.
     mapping (uint256 => uint256[]) public active_proposals; // block end number mapped to array of proposal ids.
-    uint256[] public expiredId; // track expired proposals to claim eth.
+    uint256[] public inactiveIds; // track inactive proposals to claim eth.
+    uint256 public endProp_count; // counts the number of inactive proposals.
+
+    // Keep track of processed block number
+    uint lastBlockNumber;
 
     // Votes variables
     mapping (uint256 => mapping (address => Voter_Status)) internal addressToVote; // Show votes given by address and id.
@@ -60,34 +64,33 @@ contract Vote {
     event EndOfProposal(uint256 id); // Proposal ended event trigger.
 
     /**
-     * @dev Modifier to be called periodically to detect expired proposals.
+     * @dev Modifier to be called periodically to detect proposals that are no longer active and call for the winner.
      */
     modifier checkWinner() {
-        // check if current block time coincides with proposal's end time.
+        // update proposals since last update to current block number.
         uint256 current = block.number;
-        uint256[] memory endProposalIds = active_proposals[current];
-        uint n = endProposalIds.length;
-        for (uint i = 0; i < n; i++) {
-            uint id = endProposalIds[i];
-            Proposal memory prop = Proposals[id];
-            if (prop.yay_count > prop.nay_count) {
-                winVotes[id] = Voter_Status.YAY;
+        for (uint i = lastBlockNumber.add(1); i <= current; i++) {
+            uint256[] memory endProposalIds = active_proposals[i];
+            uint n = endProposalIds.length;
+            for (uint j = 0; j < n; j++) {
+                uint id = endProposalIds[j];
+                Proposal memory prop = Proposals[id];
+                if (prop.yay_count > prop.nay_count) {
+                    winVotes[id] = Voter_Status.YAY;
+                }
+                else if (prop.yay_count < prop.nay_count) {
+                    winVotes[id] = Voter_Status.NAY;
+                }
+                else {
+                    winVotes[id] = Voter_Status.UNDECIDED;
+                }
+                inactiveIds.push(id);
+                endProp_count = endProp_count.add(1);
+                emit EndOfProposal(id);
             }
-            else {
-                winVotes[id] = Voter_Status.NAY;
-            }
-            expiredId.push(id);
-            emit EndOfProposal(id);
+            delete active_proposals[i];
         }
-        delete active_proposals[current];
-        _;
-    }
-
-    /**
-     * @dev Modifier to verify the withdrawer.
-     */
-    modifier isWithdrawer(address _withdraw) {
-        require(msg.sender == _withdraw);
+        lastBlockNumber = current;
         _;
     }
 
@@ -98,20 +101,22 @@ contract Vote {
     function earnedEth(address _winner, uint256 id) internal {
         Proposal memory prop = Proposals[id];
         uint wonVote = uint(winVotes[id]);
-        uint stake = votingStake[id][wonVote][_winner];
         uint earned;
         if (wonVote == 1) {
+            uint stake = votingStake[id][wonVote][_winner];
             uint total = prop.yay_count;
             uint percent = stake.mul(100).div(total);
-            earned = prop.deposit_balance.mul(percent);
+            earned = prop.deposit_balance.mul(percent).div(100);
         } else if (wonVote == 2) {
+            uint stake = votingStake[id][wonVote][_winner];
             uint total = prop.nay_count;
             uint percent = stake.mul(100).div(total);
-            earned = prop.deposit_balance.mul(percent);
+            earned = prop.deposit_balance.mul(percent).div(100);
         } else {
+            uint stake = votingStake[id][uint(addressToVote[id][_winner])][_winner];
             uint total = prop.deposit_balance;
             uint percent = stake.mul(100).div(total);
-            earned = prop.deposit_balance.mul(percent);
+            earned = prop.deposit_balance.mul(percent).div(100);
         }
         withdraw[_winner] = withdraw[_winner].add(earned);
         delete votingStake[id][wonVote][_winner];
@@ -176,31 +181,31 @@ contract Vote {
     /**
      * @dev User-callable function to find out their withdrawable amount.
      */
-    function get_withdraw(address _withdrawer) public view isWithdrawer(_withdrawer) returns(uint256) {
-        return withdraw[_withdrawer];
+    function get_withdraw() public view returns(uint256) {
+        return withdraw[msg.sender];
     }
 
     /**
      * @dev User-callable function to update their withdrawable earnings.
      */
-    function updateEthEarned(address _voter) public isWithdrawer(_voter) checkWinner() returns(uint256) {
-        for (uint i = 0; i < expiredId.length; i++) {
-            earnedEth(_voter, i);
+    function updateEthEarned() public checkWinner() returns(uint256) {
+        for (uint i = 0; i < inactiveIds.length; i++) {
+            earnedEth(msg.sender, inactiveIds[i]);
         }
-        return get_withdraw(_voter);
+        return get_withdraw();
     }
 
     /**
      * @dev Function for users to withdraw all of their eth.
      */
-    function withdrawEth(address payable _withdrawer) public payable isWithdrawer(_withdrawer) returns(bool success) {
-        uint withdrawBal = updateEthEarned(_withdrawer);
+    function withdrawEth() public payable checkWinner() returns(bool success) {
+        uint withdrawBal = withdraw[msg.sender];
         require(withdrawBal > 0, "No funds available to withdraw");
 
-        _withdrawer.transfer(withdrawBal);
-        delete withdraw[_withdrawer];
+        msg.sender.transfer(withdrawBal);
+        delete withdraw[msg.sender];
 
-        emit Transfer(address(this), _withdrawer, withdrawBal);
+        emit Transfer(address(this), msg.sender, withdrawBal);
 
         return true;
     }
