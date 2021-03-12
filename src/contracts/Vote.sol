@@ -16,11 +16,11 @@ contract Vote {
 
     /**
      * This struct defines the Proposal object.
-     * @param id - Unique tracker for the proposal.
+     * @param id - Unique identifier for the proposal.
      * @param proposer - The address created the proposal.
      * @param title - The description of the proposal.
-     * @param yay_count - Counting the number of votes in favor for the proposal.
-     * @param nay_count - Counting the number of votes against the proposal.
+     * @param yay_count - Count votes for the proposal.
+     * @param nay_count - Count votes against the proposal.
      * @param deposit_balance - The total amount of ETH deposited for the proposal.
      * @param proposer_stake - The maximum amount of ETH set by the proposer that can be deposited by all voters, to prevent whales from manipulating vote results.
      */
@@ -44,9 +44,13 @@ contract Vote {
 
     uint256 public total_proposals;
     mapping (uint256 => Proposal) public Proposals; // Find the proposals with the given ID.
-    mapping (address => mapping (uint256 => Voter_Status)) private voteTracker; // Keeps track of votes by address and proposal id.
+    mapping (address => mapping (uint256 => Voter_Status)) private addressToVote; // Show votes given by address and id.
+    mapping (uint256 => mapping (uint => address[])) private voteToAddress; // Show the addresses correspond to a vote, requires id input.
 
-    event Transfer(address _from, address _to, uint256 amount);
+    // Keeping track of active proposals.
+    mapping (uint256 => uint256[]) private active_proposals; // block end number mapped to array of proposal ids.
+
+    event Transfer(address indexed _from, address indexed _to, uint256 amount); // Transfer of ETH event.
 
     /**
      * @dev Function to create a proposal, requires a minimum deposit amount of 0.001 ETH.
@@ -61,7 +65,11 @@ contract Vote {
         uint endBlock = block.number.add(endOffset);
         Proposal memory newProposal = Proposal(id, _proposer, title, 1, 0, msg.value, msg.value, block.number, endBlock);
         Proposals[total_proposals] = newProposal;
-        voteTracker[_proposer][id] = Voter_Status.YAY; // Proposer votes yay by default.
+        active_proposals[newProposal.end_block_number].push(id);
+
+        // Proposer votes yay by default.
+        addressToVote[_proposer][id] = Voter_Status.YAY;
+        voteToAddress[id][uint(Voter_Status.YAY)].push(_proposer);
 
         balance = balance.add(msg.value);
 
