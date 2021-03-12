@@ -1,5 +1,9 @@
 const Vote = artifacts.require("Vote");
 
+function token(x) {
+    return web3.utils.toWei(x, "ether");
+}
+
 contract("Vote", (accounts) => {
     // contract instance
     let vote;
@@ -15,8 +19,8 @@ contract("Vote", (accounts) => {
 
     it("1. Create Proposals", async() => {
         let title = "Hello, World!";
-        let offset = 20; // 20 blocks
-        let deposit_amount = web3.utils.toWei("0.08");
+        let offset = 10; // 10 blocks
+        let deposit_amount = token("0.08");
 
         // initialize account balance.
         acc_0_bal = await web3.eth.getBalance(accounts[0]);
@@ -24,14 +28,14 @@ contract("Vote", (accounts) => {
 
         // attempts to stake more eth than balance.
         try {
-            await vote.create(title, offset, {value: web3.utils.toWei("200")});
+            await vote.create(title, offset, {value: token("200")});
         } catch (error) {
             assert(error.message.indexOf("sender") >= 0, "sender error message.");
         }
 
         // // attempts to stake lower than the minimum requirement.
         try {
-            await vote.create(title, offset, {value: web3.utils.toWei("0.00002")});
+            await vote.create(title, offset, {value: token("0.00002")});
         } catch (error) {
             assert(error.message.indexOf("revert") >= 0, "error message must contain revert.");
         }
@@ -56,14 +60,10 @@ contract("Vote", (accounts) => {
         // there should be two proposals.
         total_proposals = await vote.total_proposals();
         assert.equal(total_proposals, 2, "2 proposals only.");
-
-        // // debug
-        // let prop_2 = await vote.Proposals(2);
-        // console.log(prop_2);
     })
 
     it("2. Cast Votes", async() => {
-        let vote_amount = web3.utils.toWei("0.02");
+        let vote_amount = token("0.05");
 
         // voter attempts to vote on non-existent proposal
         try {
@@ -88,13 +88,13 @@ contract("Vote", (accounts) => {
 
         // attempts to deposit more eth than proposer.
         try {
-            await vote.vote(1, false, {from: accounts[1], value: web3.utils.toWei("1")});
+            await vote.vote(1, false, {from: accounts[1], value: token("1")});
         } catch (error) {
             assert(error.message.indexOf("revert") >= 0, "error message must contain revert.");
         }
 
-        // accounts 1 voted yay, while accounts 2 voted nay. -- prop 1
-        await vote.vote(1, true, {from: accounts[1], value: vote_amount});
+        // accounts 1 and accounts 2 voted nay against proposer. -- prop 1
+        await vote.vote(1, false, {from: accounts[1], value: vote_amount});
         await vote.vote(1, false, {from: accounts[2], value: vote_amount});
 
         // verify deposited eth balance.
@@ -103,9 +103,9 @@ contract("Vote", (accounts) => {
         let nay = prop_1.nay_count;
         let total = prop_1.deposit_balance;
 
-        assert.equal(total, web3.utils.toWei("0.12"));
-        assert.equal(yay, web3.utils.toWei("0.1"));
-        assert.equal(nay, vote_amount);
+        assert.equal(total, token("0.18"));
+        assert.equal(yay, token("0.08"));
+        assert.equal(nay, token("0.1"));
     })
 
     it("3. Test Withdrawal.", async() => {
@@ -114,14 +114,47 @@ contract("Vote", (accounts) => {
         let prop_2 = await vote.inactiveIds(0);
         assert.equal(prop_2, 2, "Prop 2 should be inactive.")
 
-        // accounts 1 attempts to withdraw.
-        
-        // update withdrawable funds
-        await vote.updateEthEarned({from: accounts[1]});
+         // accounts 1 should have most of its initial balance back, minus staked vote on prop 1.
+        await vote.updateEthEarned({from: accounts[1]}); // NOTE: Make sure to update withdrawable eth on the front end first, before the withdrawal.
+        let bal = await web3.eth.getBalance(accounts[1]);
+        let amount = await vote.get_withdraw({from: accounts[1]});
+        let max = acc_1_bal - token("0.05");
+        assert.isAtMost(parseInt(bal) + parseInt(amount), max);
 
-        let bal = await vote.get_withdraw({from: accounts[1]});
+        await vote.updateEthEarned({from: accounts[3]}); // NOTE: Make sure to update withdrawable eth on the front end first, before the withdrawal.
+        // attempts withdraw with zero funds.
+        try {
+            await vote.withdrawEth({from: accounts[3]});
+        } catch (error) {
+            assert(error.message.indexOf("revert") >= 0, "error message must contain revert.");
+        }
 
-        // accounts 1 should have most of its initial balance back, minus staked vote on prop 1.
-        // let max = web3.utils.toWei("0.12")
+        // --- END OF PROP 1, Nay Voters are the winners. ---
+
+        // accounts[0] attempts to withdraw
+        await vote.updateEthEarned({from: accounts[0]}); // NOTE: Make sure to update withdrawable eth on the front end first, before the withdrawal.
+        try {
+            await vote.withdrawEth({from: accounts[3]});
+        } catch (error) {
+            assert(error.message.indexOf("revert") >= 0, "error message must contain revert.");
+        }
+
+        // accounts[1] and accounts[2] withdraw.
+        await vote.updateEthEarned({from: accounts[1]}); // NOTE: Make sure to update withdrawable eth on the front end first, before the withdrawal.
+        await vote.updateEthEarned({from: accounts[2]}); // NOTE: Make sure to update withdrawable eth on the front end first, before the withdrawal.
+
+        let expected_amount_1 = token("0.17"); // prop_1 + prop_2 withdrawals.
+        let expected_amount_2 = token("0.09"); // prop_1 withdrawals.
+        let acc1_actual = await vote.get_withdraw({from: accounts[1]});
+        let acc2_actual = await vote.get_withdraw({from: accounts[2]});
+        assert.equal(acc1_actual.toString(), expected_amount_1.toString());
+        assert.equal(acc2_actual.toString(), expected_amount_2.toString());
+
+        await vote.withdrawEth({from: accounts[1]});
+        await vote.withdrawEth({from: accounts[2]});
+
+        // contract has zero balance.
+        let con = await web3.eth.getBalance(vote.address);
+        assert.equal(con, 0);
     })
 })

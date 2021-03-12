@@ -199,7 +199,7 @@ contract Vote {
      * @dev Function for users to withdraw all of their eth.
      */
     function withdrawEth() public payable checkWinner() returns(bool success) {
-        uint withdrawBal = withdraw[msg.sender];
+        uint256 withdrawBal = withdraw[msg.sender];
         require(withdrawBal > 0, "No funds available to withdraw");
 
         msg.sender.transfer(withdrawBal);
