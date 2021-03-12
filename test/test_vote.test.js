@@ -94,5 +94,7 @@ contract("Vote", (accounts) => {
         assert.equal(total, web3.utils.toWei("0.12"));
         assert.equal(yay, web3.utils.toWei("0.1"));
         assert.equal(nay, vote_amount);
+
+        
     })
 })

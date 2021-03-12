@@ -7,7 +7,7 @@ import "./lib/SafeMath.sol";
 contract Vote {
     
     using SafeMath for uint256;
-    address public admin; // contract admin
+    address public admin;
 
     constructor() public {
         admin = msg.sender;
@@ -41,25 +41,87 @@ contract Vote {
         NAY
     }
 
+    // Proposal Variables
     uint256 public total_proposals;
     mapping (uint256 => Proposal) public Proposals; // Find the proposals with the given ID.
-    mapping (uint256 => mapping (address => Voter_Status)) private addressToVote; // Show votes given by address and id.
-    mapping (uint256 => mapping (uint => address[])) private voteToAddress; // Show the addresses correspond to a vote, requires id input.
+    mapping (uint256 => uint256[]) public active_proposals; // block end number mapped to array of proposal ids.
+    uint256[] public expiredId; // track expired proposals to claim eth.
 
-    // Keeping track of active proposals.
-    mapping (uint256 => uint256[]) private active_proposals; // block end number mapped to array of proposal ids.
+    // Votes variables
+    mapping (uint256 => mapping (address => Voter_Status)) internal addressToVote; // Show votes given by address and id.
+    mapping (uint256 => Voter_Status) public winVotes; // Proposal majority votes.
 
-    // Keeping track of user deposited amount
-    mapping (uint256 => mapping(address => uint256)) private deposit;
+    // Funds variables.
+    mapping (uint256 => mapping (uint => mapping (address => uint256))) internal votingStake; // Show the amount of eth staked for the vote
+    mapping (address => uint256) internal withdraw; // Keeping track of user withdrawable amount.
 
     event Transfer(address indexed _from, address indexed _to, uint256 amount); // Transfer of ETH event.
     event Voted(address indexed _voter, uint256 id, bool votesYay); // Users cast votes event.
+    event EndOfProposal(uint256 id); // Proposal ended event trigger.
+
+    /**
+     * @dev Modifier to be called periodically to detect expired proposals.
+     */
+    modifier checkWinner() {
+        // check if current block time coincides with proposal's end time.
+        uint256 current = block.number;
+        uint256[] memory endProposalIds = active_proposals[current];
+        uint n = endProposalIds.length;
+        for (uint i = 0; i < n; i++) {
+            uint id = endProposalIds[i];
+            Proposal memory prop = Proposals[id];
+            if (prop.yay_count > prop.nay_count) {
+                winVotes[id] = Voter_Status.YAY;
+            }
+            else {
+                winVotes[id] = Voter_Status.NAY;
+            }
+            expiredId.push(id);
+            emit EndOfProposal(id);
+        }
+        delete active_proposals[current];
+        _;
+    }
+
+    /**
+     * @dev Modifier to verify the withdrawer.
+     */
+    modifier isWithdrawer(address _withdraw) {
+        require(msg.sender == _withdraw);
+        _;
+    }
+
+    /** 
+     * @dev Function to calculate earnings from winning proposals.
+     * @return The amount of eth withdrawable by the winner.
+     */
+    function earnedEth(address _winner, uint256 id) internal {
+        Proposal memory prop = Proposals[id];
+        uint wonVote = uint(winVotes[id]);
+        uint stake = votingStake[id][wonVote][_winner];
+        uint earned;
+        if (wonVote == 1) {
+            uint total = prop.yay_count;
+            uint percent = stake.mul(100).div(total);
+            earned = prop.deposit_balance.mul(percent);
+        } else if (wonVote == 2) {
+            uint total = prop.nay_count;
+            uint percent = stake.mul(100).div(total);
+            earned = prop.deposit_balance.mul(percent);
+        } else {
+            uint total = prop.deposit_balance;
+            uint percent = stake.mul(100).div(total);
+            earned = prop.deposit_balance.mul(percent);
+        }
+        withdraw[_winner] = withdraw[_winner].add(earned);
+        delete votingStake[id][wonVote][_winner];
+    }
 
     /**
      * @dev Function to create a proposal, requires a minimum deposit amount of 0.001 ETH.
      * @return The proposal id
      */
-    function create(string memory title, uint endOffset) public payable returns(uint256) {
+    function create(string memory title, uint endOffset) public payable checkWinner() returns(uint256) {
         require(msg.value >= 0.001 ether, "Deposit does not meet the minimum requirement");
         require(endOffset > 0, "End block number undefined");
 
@@ -70,13 +132,12 @@ contract Vote {
         Proposals[total_proposals] = newProposal;
         active_proposals[newProposal.end_block_number].push(id);
 
-        deposit[id][msg.sender] = msg.value;
-
         // Proposer votes yay by default.
         addressToVote[id][msg.sender] = Voter_Status.YAY;
-        voteToAddress[id][uint(Voter_Status.YAY)].push(msg.sender);
+        votingStake[id][uint(Voter_Status.YAY)][msg.sender] = msg.value;
 
         emit Transfer(msg.sender, address(this), msg.value);
+        emit Voted(msg.sender, id, true);
 
         return id;
     }
@@ -84,30 +145,62 @@ contract Vote {
     /**
      * @dev Function to vote on a proposal.
      */
-    function vote(uint256 id, bool votesYay) public payable returns(bool success) {
+    function vote(uint256 id, bool votesYay) public payable checkWinner() returns(bool success) {
         require(id <= total_proposals, "Invalid proposal");
         require(addressToVote[id][msg.sender] == Voter_Status.UNDECIDED, "Can not vote twice");
         Proposal storage proposal = Proposals[id];
         require(proposal.end_block_number > block.number, "Proposal is no longer active");
         require(msg.value >= 0.001 ether, "Deposit does not meet the minimum requirement");
-        uint maximum = deposit[id][proposal.proposer].mul(90).div(100); // voters can only deposit 90% of the proposer's amount at most -- prevention of whales.
+        uint maximum = votingStake[id][uint(Voter_Status.YAY)][proposal.proposer].mul(90).div(100); // voters can only deposit 90% of the proposer's amount at most -- prevention of whales.
         require(msg.value <= maximum, "Deposit exceeded the maximum amount");
 
         proposal.deposit_balance = proposal.deposit_balance.add(msg.value);
-        deposit[id][msg.sender] = msg.value;
 
         if (votesYay) {
             addressToVote[id][msg.sender] = Voter_Status.YAY;
-            voteToAddress[id][uint(Voter_Status.YAY)].push(msg.sender);
+            votingStake[id][uint(Voter_Status.YAY)][msg.sender] = msg.value;
             proposal.yay_count = proposal.yay_count.add(msg.value);
         }
         else {
             addressToVote[id][msg.sender] = Voter_Status.NAY;
-            voteToAddress[id][uint(Voter_Status.NAY)].push(msg.sender);
+            votingStake[id][uint(Voter_Status.NAY)][msg.sender] = msg.value;
             proposal.nay_count = proposal.nay_count.add(msg.value);
         }
 
+        emit Transfer(msg.sender, address(this), msg.value);
         emit Voted(msg.sender, id, votesYay);
+
+        return true;
+    }
+
+    /**
+     * @dev User-callable function to find out their withdrawable amount.
+     */
+    function get_withdraw(address _withdrawer) public view isWithdrawer(_withdrawer) returns(uint256) {
+        return withdraw[_withdrawer];
+    }
+
+    /**
+     * @dev User-callable function to update their withdrawable earnings.
+     */
+    function updateEthEarned(address _voter) public isWithdrawer(_voter) checkWinner() returns(uint256) {
+        for (uint i = 0; i < expiredId.length; i++) {
+            earnedEth(_voter, i);
+        }
+        return get_withdraw(_voter);
+    }
+
+    /**
+     * @dev Function for users to withdraw all of their eth.
+     */
+    function withdrawEth(address payable _withdrawer) public payable isWithdrawer(_withdrawer) returns(bool success) {
+        uint withdrawBal = updateEthEarned(_withdrawer);
+        require(withdrawBal > 0, "No funds available to withdraw");
+
+        _withdrawer.transfer(withdrawBal);
+        delete withdraw[_withdrawer];
+
+        emit Transfer(address(this), _withdrawer, withdrawBal);
 
         return true;
     }
