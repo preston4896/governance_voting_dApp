@@ -9,7 +9,7 @@ class App extends React.Component {
             window.web3 = new Web3(window.ethereum);
             await window.ethereum.enable();
         }
-        // browser with web3 extension (Metamask)
+        // legacy web3 API
         else if (window.web3) {
             window.web3 = new Web3(window.web3.currentProvider);
         }
@@ -29,6 +29,10 @@ class App extends React.Component {
 
         this.setState({account: accounts[0]});
 
+        let balanceInWei = await web3.eth.getBalance(this.state.account);
+        let balance = web3.utils.fromWei(balanceInWei, "ether");
+        this.setState({accountBalance: balance});
+
         const networkId = await web3.eth.net.getId();
 
         // load the contract
@@ -44,6 +48,8 @@ class App extends React.Component {
          }).catch((error) => {
             window.alert("The contract is not deployed to this network.");
          })
+
+         this.setState({loading: false}); // App finished loading.
     }
 
     constructor(props) {
@@ -51,12 +57,29 @@ class App extends React.Component {
         this.state = {
             account: "0x0",
             voteContract: {},
-            loading: true // the page is loading when a user is interacting with Metamask.
+            loading: true, // the page is loading when a user is interacting with Metamask.
+            accountBalance: "0"
         }
     }
     
     render() {
-        return <h1> Hello, world! </h1>;
+        let content;
+        if (this.state.loading) {
+            content = <p> Loading account info. Please connect your wallet to this app on Metamask. </p>;
+        }
+        else {
+            content = <div> 
+                <h2> Welcome, {this.state.account}! </h2>
+                <p> Your current ETH balance is {this.state.accountBalance} ETH! </p>
+            </div>
+        }
+
+        return (   
+            <div>
+                <h1> Preston's Voting dApp </h1>
+                {content}
+            </div>
+        );
     }
 
     async componentDidMount() {
