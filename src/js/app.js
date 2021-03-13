@@ -10,11 +10,10 @@ class App extends React.Component {
         }
         // browser with web3 extension (Metamask)
         else if (window.web3) {
-            window.web3 = new Web3(window.web3.currentProvider);
-        }
-        else {
-            window.alert("Browser does not support Web3. Consider installing MetaMask.");
-        }
+                window.web3 = new Web3(window.web3.currentProvider);
+            } else {
+                window.alert("Browser does not support Web3. Consider installing MetaMask.");
+            }
     }
 
     constructor(props) {
@@ -23,11 +22,15 @@ class App extends React.Component {
             account: "0x0",
             voteContract: {},
             loading: true // the page is loading when a user is interacting with Metamask.
-        }
+        };
     }
-    
+
     render() {
-        return <h1> Hello, world! </h1>;
+        return React.createElement(
+            "h1",
+            null,
+            " Hello, world! "
+        );
     }
 
     async componentDidMount() {
@@ -36,7 +39,5 @@ class App extends React.Component {
 }
 
 // load the components to main div in index.html
-ReactDOM.render(
-    <App/>,
-    document.getElementById("root")
-)
+ReactDOM.render(React.createElement(App, null), document.getElementById("root"));
+
