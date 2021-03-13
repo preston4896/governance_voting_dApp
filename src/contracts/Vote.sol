@@ -49,7 +49,7 @@ contract Vote {
     uint256 public endProp_count; // counts the number of inactive proposals.
 
     // Keep track of processed block number
-    uint lastBlockNumber;
+    uint public lastBlockNumber;
 
     // Votes variables
     mapping (uint256 => mapping (address => Voter_Status)) internal addressToVote; // Show votes given by address and id.
@@ -96,7 +96,6 @@ contract Vote {
 
     /** 
      * @dev Function to calculate earnings from winning proposals.
-     * @return The amount of eth withdrawable by the winner.
      */
     function earnedEth(address _winner, uint256 id) internal {
         Proposal memory prop = Proposals[id];
@@ -120,6 +119,7 @@ contract Vote {
         }
         withdraw[_winner] = withdraw[_winner].add(earned);
         delete votingStake[id][wonVote][_winner];
+
     }
 
     /**
@@ -179,7 +179,7 @@ contract Vote {
     }
 
     /**
-     * @dev User-callable function to find out their withdrawable amount.
+     * @dev User-callable function to get their withdrawable amount. It is recommended to invoke updateEthEarned() first.
      */
     function get_withdraw() public view returns(uint256) {
         return withdraw[msg.sender];
@@ -187,6 +187,7 @@ contract Vote {
 
     /**
      * @dev User-callable function to update their withdrawable earnings.
+     * TEMP: I need to figure out a way to shrink inactiveIds. This function call can become very expensive, if not fixed.
      */
     function updateEthEarned() public checkWinner() returns(uint256) {
         for (uint i = 0; i < inactiveIds.length; i++) {
@@ -196,14 +197,14 @@ contract Vote {
     }
 
     /**
-     * @dev Function for users to withdraw all of their eth.
+     * @dev Function for users to withdraw all of their eth. It is recommended to invoke updateEthEarned() first.
      */
     function withdrawEth() public payable checkWinner() returns(bool success) {
         uint256 withdrawBal = withdraw[msg.sender];
         require(withdrawBal > 0, "No funds available to withdraw");
 
         msg.sender.transfer(withdrawBal);
-        delete withdraw[msg.sender];
+        withdraw[msg.sender] = 0;
 
         emit Transfer(address(this), msg.sender, withdrawBal);
 
