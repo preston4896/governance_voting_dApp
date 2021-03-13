@@ -2,14 +2,15 @@
   "name": "advanca-voting-dapp",
   "version": "1.0",
   "author": "preston4896@me.com",
+  "description": "A simple decentralized web application where users can create or vote proposals by staking ETH tokens.",
   "dependencies": {
     "@truffle/hdwallet-provider": "^1.2.2",
-    "babel": "^6.23.0",
+    "babel-cli": "^6.26.0",
     "live-server": "^1.2.1",
     "react": "^17.0.1",
-    "web3" : "1.3.4"
+    "web3": "1.3.4"
   },
   "scripts": {
-    
+    "dev" : "npx babel ./src/js/jsx/app.jsx --preset ./src/js > app.js"
   }
 }
