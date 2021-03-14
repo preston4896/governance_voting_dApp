@@ -194,4 +194,45 @@ contract("Vote", (accounts) => {
         let con = await web3.eth.getBalance(vote.address);
         assert.equal(con, 0);
     })
+
+    it("5. Two Proposals End At The Same Block.", async() => {
+        let deposit_amount = token("0.3");
+        let title = "The Twins";
+        let offset1 = 6;
+        let offset2 = 3;
+
+        let vote_amount = token("0.2");
+
+        await vote.create(title, offset1, {value: deposit_amount});
+        await vote.vote(4, true, {from: accounts[1], value: vote_amount});
+        await vote.vote(4, false, {from: accounts[2], value: vote_amount});
+
+        await vote.create(title, offset2, {value: deposit_amount});
+        await vote.vote(5, false, {from: accounts[1], value: vote_amount});
+        await vote.vote(5, true, {from: accounts[2], value: vote_amount});
+
+        // verify withdrawables
+        await vote.updateEthEarned({from: accounts[0]}); // NOTE: Make sure to update withdrawable eth on the front end first, before the withdrawal.
+        await vote.updateEthEarned({from: accounts[1]}); // NOTE: Make sure to update withdrawable eth on the front end first, before the withdrawal.
+        await vote.updateEthEarned({from: accounts[2]}); // NOTE: Make sure to update withdrawable eth on the front end first, before the withdrawal.
+
+        // ending with a tie, everyone should be getting their ETH back.
+        let expected_amount_0 = token("0.84");
+        let expected_amount_1 = token("0.28");
+        let expected_amount_2 = token("0.28");
+        let acc0_actual = await vote.get_withdraw({from: accounts[0]});
+        let acc1_actual = await vote.get_withdraw({from: accounts[1]});
+        let acc2_actual = await vote.get_withdraw({from: accounts[2]});
+        assert.equal(acc0_actual.toString(), expected_amount_0.toString());
+        assert.equal(acc1_actual.toString(), expected_amount_1.toString());
+        assert.equal(acc2_actual.toString(), expected_amount_2.toString());
+
+        await vote.withdrawEth({from: accounts[0]});
+        await vote.withdrawEth({from: accounts[1]});
+        await vote.withdrawEth({from: accounts[2]});
+
+        // contract has zero balance.
+        let con = await web3.eth.getBalance(vote.address);
+        assert.equal(con, 0);
+    })
 })
