@@ -1,66 +1,68 @@
 "strict mode";
 
+// web3 global functions
+
+// checks for web3-compatible wallet
+async function loadWeb3() {
+    // web3 browser
+    if (window.ethereum) {
+        window.web3 = new Web3(window.ethereum);
+        await window.ethereum.enable();
+    }
+    // legacy web3 API
+    else if (window.web3) {
+        window.web3 = new Web3(window.web3.currentProvider);
+    }
+    else {
+        let message = "Browser does not support Web3. Consider installing MetaMask.";
+        let alert = confirm(message);
+        if (alert) {
+            window.open("https://metamask.io/", "_blank", "noopener, noreferrer");
+        }
+    }
+};
+
+// load user's account and contract
+async function loadData() {
+    this.setState({contractDeployed: false});
+
+    const web3 = window.web3;
+    const accounts = await web3.eth.getAccounts();
+
+    this.setState({account: accounts[0]});
+
+    let balanceInWei = await web3.eth.getBalance(this.state.account);
+    let balance = web3.utils.fromWei(balanceInWei, "ether");
+    this.setState({accountBalance: balance});
+
+    const networkId = await web3.eth.net.getId();
+    this.setState({network: networkId});
+
+    // load the contract
+    let abi;
+    let address;
+    await fetch("./src/builds/Vote.json")
+     .then(body => body.json())
+     .then(data => {
+        abi = data.abi;
+        address = data.networks[networkId].address;
+        const vote = new web3.eth.Contract(abi, address);
+        this.setState({voteContract: vote});
+        this.setState({contractDeployed: true});
+     }).catch((error) => {
+        window.alert("The contract is not deployed to this network.");
+     })
+
+    // load user and app info from the contract. - getter functions should not cost any gas.
+    // block number
+    const vote = this.state.voteContract;
+    let blockNumber = await vote.methods.lastBlockNumber().call();
+    this.setState({lastSyncedBlock: blockNumber});
+
+    this.setState({loading: false}); // App finished loading.
+};
+
 class App extends React.Component {
-
-    // checks for web3-compatible wallet
-    async loadWeb3() {
-        // web3 browser
-        if (window.ethereum) {
-            window.web3 = new Web3(window.ethereum);
-            await window.ethereum.enable();
-        }
-        // legacy web3 API
-        else if (window.web3) {
-            window.web3 = new Web3(window.web3.currentProvider);
-        }
-        else {
-            let message = "Browser does not support Web3. Consider installing MetaMask.";
-            let alert = confirm(message);
-            if (alert) {
-                window.open("https://metamask.io/", "_blank", "noopener, noreferrer");
-            }
-        }
-    }
-
-    // load user's account and contract
-    async loadData() {
-        this.setState({contractDeployed: false});
-
-        const web3 = window.web3;
-        const accounts = await web3.eth.getAccounts();
-
-        this.setState({account: accounts[0]});
-
-        let balanceInWei = await web3.eth.getBalance(this.state.account);
-        let balance = web3.utils.fromWei(balanceInWei, "ether");
-        this.setState({accountBalance: balance});
-
-        const networkId = await web3.eth.net.getId();
-        this.setState({network: networkId});
-
-        // load the contract
-        let abi;
-        let address;
-        await fetch("./src/builds/Vote.json")
-         .then(body => body.json())
-         .then(data => {
-            abi = data.abi;
-            address = data.networks[networkId].address;
-            const vote = new web3.eth.Contract(abi, address);
-            this.setState({voteContract: vote});
-            this.setState({contractDeployed: true});
-         }).catch((error) => {
-            window.alert("The contract is not deployed to this network.");
-         })
-
-        // load user and app info from the contract. - getter functions should not cost any gas.
-        // block number
-        const vote = this.state.voteContract;
-        let blockNumber = await vote.methods.lastBlockNumber().call();
-        this.setState({lastSyncedBlock: blockNumber});
-
-        this.setState({loading: false}); // App finished loading.
-    }
 
     constructor(props) {
         super(props);
@@ -86,6 +88,8 @@ class App extends React.Component {
             // misc app state
             loading: true // the page is loading when a user is interacting with Metamask.
         }
+        loadWeb3 = loadWeb3.bind(this);
+        loadData = loadData.bind(this);
     }
     
     render() {
@@ -136,18 +140,18 @@ class App extends React.Component {
     }
 
     async componentDidMount() {
-        await this.loadWeb3();
-        await this.loadData();
+        await loadWeb3();
+        await loadData();
         // listen for network change
         await window.ethereum.on('chainChanged', () => {
             this.setState({loading: true});
-            this.loadData();
+            loadData();
         })
 
         // listen for account change
         await window.ethereum.on('accountsChanged', () => {
             this.setState({loading: true});
-            this.loadData();
+            loadData();
         })
     }
 }
@@ -166,6 +170,12 @@ function AppBody(props) {
         </div>
     )
 }
+// class AppBody extends React.Component {
+//     constructor(props) {
+//         super(props);
+
+//     }
+// }
 
 // load the components to root div in index.html
 ReactDOM.render(
