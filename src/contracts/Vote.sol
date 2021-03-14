@@ -47,6 +47,8 @@ contract Vote {
     mapping (uint256 => uint256[]) internal active_proposals; // block end number mapped to array of proposal ids.
     uint256[] internal inactiveIds; // track inactive proposals to claim eth.
     uint256 public endProp_count; // counts the number of inactive proposals.
+    mapping (address => uint256[]) internal myProposalIds; // users to locate their created proposal by id.
+    mapping (address => uint256) public myProposal_count; // counts the number of proposals the user created.
 
     // Keep track of processed block number
     uint public lastBlockNumber;
@@ -140,6 +142,8 @@ contract Vote {
         Proposal memory newProposal = Proposal(id, msg.sender, title, msg.value, 0, msg.value, block.number, endBlock);
         Proposals[total_proposals] = newProposal;
         active_proposals[newProposal.end_block_number].push(id);
+        myProposalIds[msg.sender].push(id);
+        myProposal_count[msg.sender] = myProposal_count[msg.sender].add(1);
 
         // Proposer votes yay by default.
         addressToVote[id][msg.sender] = Voter_Status.YAY;
@@ -207,6 +211,25 @@ contract Vote {
      */
     function get_staked() public view returns(uint256) {
         return totalStake[msg.sender];
+    }
+
+    /**
+     * @dev User-callable function for proposer owners to look at their proposals or find a proposal in general.
+     * @dev if ownerProposal is true, i is used as index of the myProposal Array. Otherwise, it is simply the proposal id.
+     * @return the values that comform to the Proposal object.
+     */
+    function get_proposals(uint i, bool ownerProposal) public view returns(uint256, address, string memory, uint256, uint256, uint256, uint256, uint256) {
+        Proposal memory prop;
+        if (ownerProposal) {
+            require(i < myProposal_count[msg.sender], "Invalid index");
+            uint id = myProposalIds[msg.sender][i];
+            prop = Proposals[id];
+        }
+        else {
+            require(i <= total_proposals, "Proposal does not exist");
+            prop = Proposals[i];
+        }
+        return (prop.id, prop.proposer, prop.title, prop.yay_count, prop.nay_count, prop.deposit_balance, prop.begin_block_number, prop.end_block_number);
     }
 
     /**
