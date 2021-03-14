@@ -11,6 +11,7 @@ contract Vote {
 
     constructor() public {
         admin = msg.sender;
+        lastBlockNumber = block.number;
     }
 
     /**

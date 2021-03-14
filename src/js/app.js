@@ -51,7 +51,10 @@ class App extends React.Component {
         });
 
         // load user and app info from the contract. - getter functions should not cost any gas.
-
+        // block number
+        const vote = this.state.voteContract;
+        let blockNumber = await vote.methods.lastBlockNumber().call();
+        this.setState({ lastSyncedBlock: blockNumber });
 
         this.setState({ loading: false }); // App finished loading.
     }

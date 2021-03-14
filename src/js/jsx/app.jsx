@@ -53,10 +53,13 @@ class App extends React.Component {
             window.alert("The contract is not deployed to this network.");
          })
 
-         // load user and app info from the contract. - getter functions should not cost any gas.
+        // load user and app info from the contract. - getter functions should not cost any gas.
+        // block number
+        const vote = this.state.voteContract;
+        let blockNumber = await vote.methods.lastBlockNumber().call();
+        this.setState({lastSyncedBlock: blockNumber});
 
-
-         this.setState({loading: false}); // App finished loading.
+        this.setState({loading: false}); // App finished loading.
     }
 
     constructor(props) {
