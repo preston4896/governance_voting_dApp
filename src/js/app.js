@@ -23,6 +23,8 @@ class App extends React.Component {
 
     // load user's account and contract
     async loadData() {
+        this.setState({ contractDeployed: false });
+
         const web3 = window.web3;
         const accounts = await web3.eth.getAccounts();
 
@@ -43,9 +45,13 @@ class App extends React.Component {
             address = data.networks[networkId].address;
             const vote = new web3.eth.Contract(abi, address);
             this.setState({ voteContract: vote });
+            this.setState({ contractDeployed: true });
         }).catch(error => {
             window.alert("The contract is not deployed to this network.");
         });
+
+        // load user and app info from the contract. - getter functions should not cost any gas.
+
 
         this.setState({ loading: false }); // App finished loading.
     }
@@ -53,29 +59,126 @@ class App extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
+            // account info
             account: "0x0",
+            accountBalance: "0",
+
+            // user-staking info
+            amountDeposited: "0",
+            amountWithdrawable: "0",
+            userOwnedProp: "0",
+
+            // network info
             network: "-1",
+            lastSyncedBlock: "0",
+            totalProp: "0",
+
+            // contract
             voteContract: {},
-            loading: true, // the page is loading when a user is interacting with Metamask.
-            accountBalance: "0"
+            contractDeployed: false, // do not load anything when the contract is not deployed to the select network.
+
+            // misc app state
+            loading: true // the page is loading when a user is interacting with Metamask.
         };
     }
 
     render() {
         let welcomeMessage;
-        let footer;
+        let info;
+        let footer = React.createElement(
+            "p",
+            null,
+            " \xA9 2021 Copyrights Reserved by Preston Ong "
+        );
         if (this.state.loading) {
             welcomeMessage = React.createElement(
                 "p",
                 null,
                 " Loading... "
             );
-            footer = React.createElement(
-                "p",
-                null,
-                " \xA9 2021 Copyrights Reserved by Preston Ong "
-            );
         } else {
+            // TODO: add more components here.
+            if (this.state.contractDeployed) {
+                info = React.createElement(
+                    "div",
+                    null,
+                    React.createElement(
+                        "div",
+                        { className: "row" },
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "p",
+                                null,
+                                " Total staked: ",
+                                this.state.amountDeposited,
+                                " ETH "
+                            ),
+                            " "
+                        ),
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "p",
+                                null,
+                                " Withdrawable amount: ",
+                                this.state.amountWithdrawable,
+                                " ETH "
+                            ),
+                            "  "
+                        )
+                    ),
+                    React.createElement(
+                        "p",
+                        null,
+                        " You created ",
+                        this.state.userOwnedProp,
+                        " proposal(s). You may create a new one or vote on active proposals. "
+                    ),
+                    React.createElement(
+                        "p",
+                        null,
+                        " A minimum of 0.001 ETH is required to create a new proposal. "
+                    ),
+                    React.createElement(AppBody, null)
+                );
+                footer = React.createElement(
+                    "footer",
+                    null,
+                    React.createElement(
+                        "div",
+                        { className: "container" },
+                        React.createElement(
+                            "div",
+                            { className: "row" },
+                            React.createElement(
+                                "div",
+                                { className: "col" },
+                                " Total Proposals: ",
+                                this.state.totalProp,
+                                " "
+                            ),
+                            React.createElement(
+                                "div",
+                                { className: "col" },
+                                " ",
+                                React.createElement(
+                                    "p",
+                                    null,
+                                    " Last Synced Block Number: ",
+                                    this.state.lastSyncedBlock,
+                                    " "
+                                ),
+                                " "
+                            )
+                        )
+                    )
+                );
+            }
             welcomeMessage = React.createElement(
                 "div",
                 { className: "container" },
@@ -87,45 +190,11 @@ class App extends React.Component {
                     "! "
                 ),
                 React.createElement(
-                    "p",
+                    "h3",
                     null,
                     " Your current balance is ",
                     this.state.accountBalance,
-                    " ETH! "
-                )
-            );
-            footer = React.createElement(
-                "footer",
-                null,
-                React.createElement(
-                    "div",
-                    { className: "container" },
-                    React.createElement(
-                        "div",
-                        { className: "row" },
-                        React.createElement(
-                            "div",
-                            { className: "col" },
-                            " ",
-                            React.createElement(
-                                "p",
-                                null,
-                                " \xA9 2021 Copyrights Reserved by Preston Ong "
-                            ),
-                            " "
-                        ),
-                        React.createElement(
-                            "div",
-                            { className: "col" },
-                            " ",
-                            React.createElement(
-                                "p",
-                                null,
-                                " Last Synced Block Number: 0 "
-                            ),
-                            " "
-                        )
-                    )
+                    " ETH "
                 )
             );
         }
@@ -139,6 +208,7 @@ class App extends React.Component {
                 " Preston's Voting dApp "
             ),
             welcomeMessage,
+            info,
             footer
         );
     }
@@ -158,6 +228,62 @@ class App extends React.Component {
             this.loadData();
         });
     }
+}
+
+// TODO
+function AppBody(props) {
+    return React.createElement(
+        "div",
+        { className: "container" },
+        React.createElement(
+            "div",
+            { className: "row d-flex align-items-center justify-content-between" },
+            React.createElement(
+                "div",
+                { className: "row-sm-12 rol-md-6 rol-lg-3" },
+                " ",
+                React.createElement(
+                    "button",
+                    null,
+                    " Search or Vote On Proposal(s) "
+                ),
+                " "
+            ),
+            React.createElement(
+                "div",
+                { className: "row-sm-12 rol-md-6 rol-lg-3" },
+                " ",
+                React.createElement(
+                    "button",
+                    null,
+                    " Find My Proposals "
+                ),
+                " "
+            ),
+            React.createElement(
+                "div",
+                { className: "row-sm-12 rol-md-6 rol-lg-3" },
+                " ",
+                React.createElement(
+                    "button",
+                    null,
+                    " Create A Proposal and Stake ETH "
+                ),
+                " "
+            ),
+            React.createElement(
+                "div",
+                { className: "row-sm-12 rol-md-6 rol-lg-3" },
+                " ",
+                React.createElement(
+                    "button",
+                    null,
+                    " Withdraw ETH "
+                ),
+                " "
+            )
+        )
+    );
 }
 
 // load the components to root div in index.html

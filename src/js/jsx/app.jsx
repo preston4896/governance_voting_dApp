@@ -24,6 +24,8 @@ class App extends React.Component {
 
     // load user's account and contract
     async loadData() {
+        this.setState({contractDeployed: false});
+
         const web3 = window.web3;
         const accounts = await web3.eth.getAccounts();
 
@@ -46,9 +48,13 @@ class App extends React.Component {
             address = data.networks[networkId].address;
             const vote = new web3.eth.Contract(abi, address);
             this.setState({voteContract: vote});
+            this.setState({contractDeployed: true});
          }).catch((error) => {
             window.alert("The contract is not deployed to this network.");
          })
+
+         // load user and app info from the contract. - getter functions should not cost any gas.
+
 
          this.setState({loading: false}); // App finished loading.
     }
@@ -56,42 +62,71 @@ class App extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
+            // account info
             account: "0x0",
+            accountBalance: "0",
+
+            // user-staking info
+            amountDeposited: "0",
+            amountWithdrawable: "0",
+            userOwnedProp: "0",
+
+            // network info
             network: "-1",
+            lastSyncedBlock: "0",
+            totalProp: "0",
+
+            // contract
             voteContract: {},
-            loading: true, // the page is loading when a user is interacting with Metamask.
-            accountBalance: "0"
+            contractDeployed: false, // do not load anything when the contract is not deployed to the select network.
+
+            // misc app state
+            loading: true // the page is loading when a user is interacting with Metamask.
         }
     }
     
     render() {
         let welcomeMessage;
-        let footer;
+        let info;
+        let footer = <p> &copy; 2021 Copyrights Reserved by Preston Ong </p>;
         if (this.state.loading) {
             welcomeMessage = <p> Loading... </p>;
-            footer = <p> &copy; 2021 Copyrights Reserved by Preston Ong </p>;
         }
         else {
-            welcomeMessage = 
-                <div className = "container"> 
-                    <h2> Welcome, {this.state.account}! </h2>
-                    <p> Your current balance is {this.state.accountBalance} ETH! </p>
-                </div>
-            footer = 
+            // TODO: add more components here.
+            if (this.state.contractDeployed) {
+                info = 
+                <div>
+                    <div className = "row"> 
+                        <div className = "col"> <p> Total staked: {this.state.amountDeposited} ETH </p> </div>
+                        <div className = "col"> <p> Withdrawable amount: {this.state.amountWithdrawable} ETH </p>  </div>
+                    </div>
+                    <p> You created {this.state.userOwnedProp} proposal(s). You may create a new one or vote on active proposals. </p>
+                    <p> A minimum of 0.001 ETH is required to create a new proposal. </p>
+                    <AppBody/>
+                </div>;
+                footer = 
                 <footer> 
                     <div className = "container">
                         <div className = "row">
-                            <div className = "col"> <p> &copy; 2021 Copyrights Reserved by Preston Ong </p> </div>
-                            <div className = "col"> <p> Last Synced Block Number : 0 </p> </div>
+                            <div className = "col"> Total Proposals: {this.state.totalProp} </div>
+                            <div className = "col"> <p> Last Synced Block Number: {this.state.lastSyncedBlock} </p> </div>
                         </div>
                     </div>
                 </footer>;
+            }
+            welcomeMessage = 
+                <div className = "container"> 
+                    <h2> Welcome, {this.state.account}! </h2>
+                    <h3> Your current balance is {this.state.accountBalance} ETH </h3>
+                </div>;
         }
 
         return (   
             <div className = "container text-center text-break">
                 <h1> Preston's Voting dApp </h1>
                 {welcomeMessage}
+                {info}
                 {footer}
             </div>
         );
@@ -112,6 +147,20 @@ class App extends React.Component {
             this.loadData();
         })
     }
+}
+
+// TODO
+function AppBody(props) {
+    return (
+        <div className = "container">
+            <div className = "row d-flex align-items-center justify-content-between">
+                <div className = "row-sm-12 rol-md-6 rol-lg-3"> <button> Search or Vote On Proposal(s) </button> </div> 
+                <div className = "row-sm-12 rol-md-6 rol-lg-3"> <button> Find My Proposals </button> </div>
+                <div className = "row-sm-12 rol-md-6 rol-lg-3"> <button> Create A Proposal and Stake ETH </button> </div>
+                <div className = "row-sm-12 rol-md-6 rol-lg-3"> <button> Withdraw ETH </button> </div>
+            </div>
+        </div>
+    )
 }
 
 // load the components to root div in index.html
