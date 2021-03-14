@@ -66,21 +66,33 @@ class App extends React.Component {
     
     render() {
         let welcomeMessage;
+        let footer;
         if (this.state.loading) {
             welcomeMessage = <p> Loading... </p>;
+            footer = <p> &copy; 2021 Copyrights Reserved by Preston Ong </p>;
         }
         else {
             welcomeMessage = 
-            <div className = "container"> 
-                <h2> Welcome, {this.state.account}! </h2>
-                <p> Your current balance is {this.state.accountBalance} ETH! </p>
-            </div>
+                <div className = "container"> 
+                    <h2> Welcome, {this.state.account}! </h2>
+                    <p> Your current balance is {this.state.accountBalance} ETH! </p>
+                </div>
+            footer = 
+                <footer> 
+                    <div className = "container">
+                        <div className = "row">
+                            <div className = "col"> <p> &copy; 2021 Copyrights Reserved by Preston Ong </p> </div>
+                            <div className = "col"> <p> Last Synced Block Number : 0 </p> </div>
+                        </div>
+                    </div>
+                </footer>;
         }
 
         return (   
             <div className = "container text-center text-break">
                 <h1> Preston's Voting dApp </h1>
                 {welcomeMessage}
+                {footer}
             </div>
         );
     }

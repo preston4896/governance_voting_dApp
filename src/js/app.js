@@ -62,15 +62,21 @@ class App extends React.Component {
     }
 
     render() {
-        let content;
+        let welcomeMessage;
+        let footer;
         if (this.state.loading) {
-            content = React.createElement(
+            welcomeMessage = React.createElement(
                 "p",
                 null,
                 " Loading... "
             );
+            footer = React.createElement(
+                "p",
+                null,
+                " \xA9 2021 Copyrights Reserved by Preston Ong "
+            );
         } else {
-            content = React.createElement(
+            welcomeMessage = React.createElement(
                 "div",
                 { className: "container" },
                 React.createElement(
@@ -88,6 +94,40 @@ class App extends React.Component {
                     " ETH! "
                 )
             );
+            footer = React.createElement(
+                "footer",
+                null,
+                React.createElement(
+                    "div",
+                    { className: "container" },
+                    React.createElement(
+                        "div",
+                        { className: "row" },
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "p",
+                                null,
+                                " \xA9 2021 Copyrights Reserved by Preston Ong "
+                            ),
+                            " "
+                        ),
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "p",
+                                null,
+                                " Last Synced Block Number: 0 "
+                            ),
+                            " "
+                        )
+                    )
+                )
+            );
         }
 
         return React.createElement(
@@ -98,7 +138,8 @@ class App extends React.Component {
                 null,
                 " Preston's Voting dApp "
             ),
-            content
+            welcomeMessage,
+            footer
         );
     }
 
