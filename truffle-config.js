@@ -1,7 +1,6 @@
 const HDWalletProvider = require('@truffle/hdwallet-provider');
 
-const fs = require('fs');
-const mnemonic = fs.readFileSync("./secrets.json").toString().trim();
+const {mnemonic, infuraApiKey, etherscanApiKey} = require("./secrets.json");
 
 module.exports = {
   /**
@@ -25,11 +24,32 @@ module.exports = {
      host: "127.0.0.1",     // Localhost (default: none)
      port: 7545,            // Standard Ethereum port (default: none)
      network_id: "*",       // Any network (default: none)
-    }
+    },
+    goerli: {
+      provider: () => new HDWalletProvider(
+        mnemonic, `wss://goerli.infura.io/ws/v3/${infuraApiKey}`
+      ),
+      network_id: 5,
+      skipDryRun: true
+    },
   },
 
   // define contracts directory
   contracts_directory: "./src/contracts",
   contracts_build_directory: "./src/builds",
-  migrations_directory: "./src/migrations"
+  migrations_directory: "./src/migrations",
+
+  mocha: {
+    enableTimeouts: false
+  },
+
+  // Truffle plug-ins
+  plugins: [
+    'truffle-plugin-verify'
+  ],
+
+  // Etherscan API
+  api_keys: {
+    etherscan: etherscanApiKey
+  }
 };
