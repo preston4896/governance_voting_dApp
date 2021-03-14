@@ -65,12 +65,13 @@ class App extends React.Component {
     }
     
     render() {
-        let content;
+        let welcomeMessage;
         if (this.state.loading) {
-            content = <p> Loading account info. Please connect your wallet to this app on Metamask. </p>;
+            welcomeMessage = <p> Loading... </p>;
         }
         else {
-            content = <div className = "container"> 
+            welcomeMessage = 
+            <div className = "container"> 
                 <h2> Welcome, {this.state.account}! </h2>
                 <p> Your current balance is {this.state.accountBalance} ETH! </p>
             </div>
@@ -79,7 +80,7 @@ class App extends React.Component {
         return (   
             <div className = "container text-center text-break">
                 <h1> Preston's Voting dApp </h1>
-                {content}
+                {welcomeMessage}
             </div>
         );
     }
@@ -89,11 +90,13 @@ class App extends React.Component {
         await this.loadData();
         // listen for network change
         await window.ethereum.on('chainChanged', () => {
+            this.setState({loading: true});
             this.loadData();
         })
 
         // listen for account change
         await window.ethereum.on('accountsChanged', () => {
+            this.setState({loading: true});
             this.loadData();
         })
     }

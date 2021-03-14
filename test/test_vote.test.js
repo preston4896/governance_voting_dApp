@@ -109,11 +109,6 @@ contract("Vote", (accounts) => {
     })
 
     it("3. Test Withdrawal.", async() => {
-        // Prop 2 from test case 1 should be expired at this point, since it only has a lifespan of 2 block numbers.
-        // verify prop 2's active status
-        let prop_2 = await vote.inactiveIds(0);
-        assert.equal(prop_2, 2, "Prop 2 should be inactive.")
-
          // accounts 1 should have most of its initial balance back, minus staked vote on prop 1.
         await vote.updateEthEarned({from: accounts[1]}); // NOTE: Make sure to update withdrawable eth on the front end first, before the withdrawal.
         let bal = await web3.eth.getBalance(accounts[1]);
@@ -150,6 +145,48 @@ contract("Vote", (accounts) => {
         assert.equal(acc1_actual.toString(), expected_amount_1.toString());
         assert.equal(acc2_actual.toString(), expected_amount_2.toString());
 
+        await vote.withdrawEth({from: accounts[1]});
+        await vote.withdrawEth({from: accounts[2]});
+
+        // there should not be any withdrawable eth left.
+        await vote.updateEthEarned({from: accounts[1]}); // NOTE: Make sure to update withdrawable eth on the front end first, before the withdrawal.
+        acc1_actual = await vote.get_withdraw({from: accounts[1]});
+        assert.equal(acc1_actual.toString(), "0");
+
+        // contract has zero balance.
+        let con = await web3.eth.getBalance(vote.address);
+        assert.equal(con, 0);
+    })
+
+    it("4. Test Proposal That Ends With a Tie", async() => {
+        let title = "This Proposal Ends With A Tie.";
+        let offset = 3; // 3 blocks
+        let deposit_amount = token("0.05");
+
+        await vote.create(title, offset, {value: deposit_amount});
+
+        // Both accounts[1] and [2] vote against the proposal that results in a tie.
+        let vote_amount = token("0.025");
+        await vote.vote(3, false, {from: accounts[1], value: vote_amount});
+        await vote.vote(3, false, {from: accounts[2], value: vote_amount});
+
+        // verify withdrawables
+        await vote.updateEthEarned({from: accounts[0]}); // NOTE: Make sure to update withdrawable eth on the front end first, before the withdrawal.
+        await vote.updateEthEarned({from: accounts[1]}); // NOTE: Make sure to update withdrawable eth on the front end first, before the withdrawal.
+        await vote.updateEthEarned({from: accounts[2]}); // NOTE: Make sure to update withdrawable eth on the front end first, before the withdrawal.
+
+        // ending with a tie, everyone should be getting their ETH back.
+        let expected_amount_0 = deposit_amount;
+        let expected_amount_1 = vote_amount;
+        let expected_amount_2 = vote_amount;
+        let acc0_actual = await vote.get_withdraw({from: accounts[0]});
+        let acc1_actual = await vote.get_withdraw({from: accounts[1]});
+        let acc2_actual = await vote.get_withdraw({from: accounts[2]});
+        assert.equal(acc0_actual.toString(), expected_amount_0.toString());
+        assert.equal(acc1_actual.toString(), expected_amount_1.toString());
+        assert.equal(acc2_actual.toString(), expected_amount_2.toString());
+
+        await vote.withdrawEth({from: accounts[0]});
         await vote.withdrawEth({from: accounts[1]});
         await vote.withdrawEth({from: accounts[2]});
 

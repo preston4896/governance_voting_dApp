@@ -67,7 +67,7 @@ class App extends React.Component {
             content = React.createElement(
                 "p",
                 null,
-                " Loading account info. Please connect your wallet to this app on Metamask. "
+                " Loading... "
             );
         } else {
             content = React.createElement(
@@ -107,11 +107,13 @@ class App extends React.Component {
         await this.loadData();
         // listen for network change
         await window.ethereum.on('chainChanged', () => {
+            this.setState({ loading: true });
             this.loadData();
         });
 
         // listen for account change
         await window.ethereum.on('accountsChanged', () => {
+            this.setState({ loading: true });
             this.loadData();
         });
     }

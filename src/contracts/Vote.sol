@@ -44,8 +44,8 @@ contract Vote {
     // Proposal Variables
     uint256 public total_proposals;
     mapping (uint256 => Proposal) public Proposals; // Find the proposals with the given ID.
-    mapping (uint256 => uint256[]) public active_proposals; // block end number mapped to array of proposal ids.
-    uint256[] public inactiveIds; // track inactive proposals to claim eth.
+    mapping (uint256 => uint256[]) internal active_proposals; // block end number mapped to array of proposal ids.
+    uint256[] internal inactiveIds; // track inactive proposals to claim eth.
     uint256 public endProp_count; // counts the number of inactive proposals.
 
     // Keep track of processed block number
@@ -58,6 +58,7 @@ contract Vote {
     // Funds variables.
     mapping (uint256 => mapping (uint => mapping (address => uint256))) internal votingStake; // Show the amount of eth staked for the vote
     mapping (address => uint256) internal withdraw; // Keeping track of user withdrawable amount.
+    mapping (address => uint256) internal totalStake; // Keeping track of the user's total staked ETH.
 
     event Transfer(address indexed _from, address indexed _to, uint256 amount); // Transfer of ETH event.
     event Voted(address indexed _voter, uint256 id, bool votesYay); // Users cast votes event.
@@ -101,25 +102,28 @@ contract Vote {
         Proposal memory prop = Proposals[id];
         uint wonVote = uint(winVotes[id]);
         uint earned;
+        uint stake;
         if (wonVote == 1) {
-            uint stake = votingStake[id][wonVote][_winner];
+            stake = votingStake[id][wonVote][_winner];
             uint total = prop.yay_count;
             uint percent = stake.mul(100).div(total);
             earned = prop.deposit_balance.mul(percent).div(100);
         } else if (wonVote == 2) {
-            uint stake = votingStake[id][wonVote][_winner];
+            stake = votingStake[id][wonVote][_winner];
             uint total = prop.nay_count;
             uint percent = stake.mul(100).div(total);
             earned = prop.deposit_balance.mul(percent).div(100);
         } else {
-            uint stake = votingStake[id][uint(addressToVote[id][_winner])][_winner];
+            stake = votingStake[id][uint(addressToVote[id][_winner])][_winner];
             uint total = prop.deposit_balance;
             uint percent = stake.mul(100).div(total);
             earned = prop.deposit_balance.mul(percent).div(100);
         }
+        if (totalStake[_winner] > 0 && stake > 0) {
+            totalStake[_winner] = totalStake[_winner].sub(stake);
+        }
         withdraw[_winner] = withdraw[_winner].add(earned);
-        delete votingStake[id][wonVote][_winner];
-
+        delete votingStake[id][uint(addressToVote[id][_winner])][_winner];
     }
 
     /**
@@ -140,6 +144,7 @@ contract Vote {
         // Proposer votes yay by default.
         addressToVote[id][msg.sender] = Voter_Status.YAY;
         votingStake[id][uint(Voter_Status.YAY)][msg.sender] = msg.value;
+        totalStake[msg.sender].add(msg.value);
 
         emit Transfer(msg.sender, address(this), msg.value);
         emit Voted(msg.sender, id, true);
@@ -160,6 +165,7 @@ contract Vote {
         require(msg.value <= maximum, "Deposit exceeded the maximum amount");
 
         proposal.deposit_balance = proposal.deposit_balance.add(msg.value);
+        totalStake[msg.sender].add(msg.value);
 
         if (votesYay) {
             addressToVote[id][msg.sender] = Voter_Status.YAY;
@@ -179,13 +185,6 @@ contract Vote {
     }
 
     /**
-     * @dev User-callable function to get their withdrawable amount. It is recommended to invoke updateEthEarned() first.
-     */
-    function get_withdraw() public view returns(uint256) {
-        return withdraw[msg.sender];
-    }
-
-    /**
      * @dev User-callable function to update their withdrawable earnings.
      * TEMP: I need to figure out a way to shrink inactiveIds. This function call can become very expensive, if not fixed.
      */
@@ -194,6 +193,20 @@ contract Vote {
             earnedEth(msg.sender, inactiveIds[i]);
         }
         return get_withdraw();
+    }
+
+    /**
+     * @dev User-callable function to get their withdrawable amount. It is recommended to invoke updateEthEarned() first.
+     */
+    function get_withdraw() public view returns(uint256) {
+        return withdraw[msg.sender];
+    }
+
+    /**
+     * @dev User-callable function to get their staked ETH amount
+     */
+    function get_staked() public view returns(uint256) {
+        return totalStake[msg.sender];
     }
 
     /**
