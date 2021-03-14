@@ -154,10 +154,11 @@ function AppBody(props) {
     return (
         <div className = "container">
             <div className = "row d-flex align-items-center justify-content-between">
-                <div className = "row-sm-12 rol-md-6 rol-lg-3"> <button> Search or Vote On Proposal(s) </button> </div> 
-                <div className = "row-sm-12 rol-md-6 rol-lg-3"> <button> Find My Proposals </button> </div>
-                <div className = "row-sm-12 rol-md-6 rol-lg-3"> <button> Create A Proposal and Stake ETH </button> </div>
-                <div className = "row-sm-12 rol-md-6 rol-lg-3"> <button> Withdraw ETH </button> </div>
+                <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button> Search or Vote On Proposal(s) </button> </div> 
+                <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button> Find My Proposals </button> </div>
+                <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button> Create A Proposal and Stake ETH </button> </div>
+                <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button> Update ETH </button> </div>
+                <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button> Withdraw ETH </button> </div>
             </div>
         </div>
     )

@@ -240,7 +240,7 @@ function AppBody(props) {
             { className: "row d-flex align-items-center justify-content-between" },
             React.createElement(
                 "div",
-                { className: "row-sm-12 rol-md-6 rol-lg-3" },
+                { className: "row-sm-12 rol-md-6 rol-lg-2" },
                 " ",
                 React.createElement(
                     "button",
@@ -251,7 +251,7 @@ function AppBody(props) {
             ),
             React.createElement(
                 "div",
-                { className: "row-sm-12 rol-md-6 rol-lg-3" },
+                { className: "row-sm-12 rol-md-6 rol-lg-2" },
                 " ",
                 React.createElement(
                     "button",
@@ -262,7 +262,7 @@ function AppBody(props) {
             ),
             React.createElement(
                 "div",
-                { className: "row-sm-12 rol-md-6 rol-lg-3" },
+                { className: "row-sm-12 rol-md-6 rol-lg-2" },
                 " ",
                 React.createElement(
                     "button",
@@ -273,7 +273,18 @@ function AppBody(props) {
             ),
             React.createElement(
                 "div",
-                { className: "row-sm-12 rol-md-6 rol-lg-3" },
+                { className: "row-sm-12 rol-md-6 rol-lg-2" },
+                " ",
+                React.createElement(
+                    "button",
+                    null,
+                    " Update ETH "
+                ),
+                " "
+            ),
+            React.createElement(
+                "div",
+                { className: "row-sm-12 rol-md-6 rol-lg-2" },
                 " ",
                 React.createElement(
                     "button",
