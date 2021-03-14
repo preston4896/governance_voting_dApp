@@ -17,6 +17,6 @@
   "scripts": {
     "compile": "npx babel ./src/js/jsx/app.jsx --preset react-app/prod > ./src/js/app.js && echo JSX compiled successfully.",
     "start": "live-server",
-    "build": "npx terser -c -m -o ./src/js/app.min.js ./src/js/app.js"
+    "build": "npx terser -c -m -o ./src/js/app.min.js ./src/js/app.js && echo App is production-ready!"
   }
 }

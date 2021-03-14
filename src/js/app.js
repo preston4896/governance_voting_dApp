@@ -9,7 +9,7 @@ class App extends React.Component {
             window.web3 = new Web3(window.ethereum);
             await window.ethereum.enable();
         }
-        // browser with web3 extension (Metamask)
+        // legacy web3 API
         else if (window.web3) {
                 window.web3 = new Web3(window.web3.currentProvider);
             } else {
@@ -33,6 +33,7 @@ class App extends React.Component {
         this.setState({ accountBalance: balance });
 
         const networkId = await web3.eth.net.getId();
+        this.setState({ network: networkId });
 
         // load the contract
         let abi;
@@ -53,6 +54,7 @@ class App extends React.Component {
         super(props);
         this.state = {
             account: "0x0",
+            network: "-1",
             voteContract: {},
             loading: true, // the page is loading when a user is interacting with Metamask.
             accountBalance: "0"
@@ -70,7 +72,7 @@ class App extends React.Component {
         } else {
             content = React.createElement(
                 "div",
-                null,
+                { className: "container" },
                 React.createElement(
                     "h2",
                     null,
@@ -81,7 +83,7 @@ class App extends React.Component {
                 React.createElement(
                     "p",
                     null,
-                    " Your current ETH balance is ",
+                    " Your current balance is ",
                     this.state.accountBalance,
                     " ETH! "
                 )
@@ -90,7 +92,7 @@ class App extends React.Component {
 
         return React.createElement(
             "div",
-            null,
+            { className: "container text-center text-break" },
             React.createElement(
                 "h1",
                 null,
@@ -103,9 +105,18 @@ class App extends React.Component {
     async componentDidMount() {
         await this.loadWeb3();
         await this.loadData();
+        // listen for network change
+        await window.ethereum.on('chainChanged', () => {
+            this.loadData();
+        });
+
+        // listen for account change
+        await window.ethereum.on('accountsChanged', () => {
+            this.loadData();
+        });
     }
 }
 
-// load the components to main div in index.html
+// load the components to root div in index.html
 ReactDOM.render(React.createElement(App, null), document.getElementById("root"));
 

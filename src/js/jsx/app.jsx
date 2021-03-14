@@ -34,6 +34,7 @@ class App extends React.Component {
         this.setState({accountBalance: balance});
 
         const networkId = await web3.eth.net.getId();
+        this.setState({network: networkId});
 
         // load the contract
         let abi;
@@ -56,6 +57,7 @@ class App extends React.Component {
         super(props);
         this.state = {
             account: "0x0",
+            network: "-1",
             voteContract: {},
             loading: true, // the page is loading when a user is interacting with Metamask.
             accountBalance: "0"
@@ -68,14 +70,14 @@ class App extends React.Component {
             content = <p> Loading account info. Please connect your wallet to this app on Metamask. </p>;
         }
         else {
-            content = <div> 
+            content = <div className = "container"> 
                 <h2> Welcome, {this.state.account}! </h2>
-                <p> Your current ETH balance is {this.state.accountBalance} ETH! </p>
+                <p> Your current balance is {this.state.accountBalance} ETH! </p>
             </div>
         }
 
         return (   
-            <div>
+            <div className = "container text-center text-break">
                 <h1> Preston's Voting dApp </h1>
                 {content}
             </div>
@@ -85,10 +87,19 @@ class App extends React.Component {
     async componentDidMount() {
         await this.loadWeb3();
         await this.loadData();
+        // listen for network change
+        await window.ethereum.on('chainChanged', () => {
+            this.loadData();
+        })
+
+        // listen for account change
+        await window.ethereum.on('accountsChanged', () => {
+            this.loadData();
+        })
     }
 }
 
-// load the components to main div in index.html
+// load the components to root div in index.html
 ReactDOM.render(
     <App/>,
     document.getElementById("root")
