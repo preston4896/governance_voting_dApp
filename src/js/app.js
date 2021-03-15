@@ -270,7 +270,7 @@ class AppBody extends React.Component {
         this.propHandler = this.propHandler.bind(this);
         this.propOwnHandler = this.propOwnHandler.bind(this);
         this.backHandler = this.backHandler.bind(this);
-        this.loadPropCount = this.loadPropCount.bind(this);
+        this.createHandler = this.createHandler.bind(this);
     }
 
     // prop button handler
@@ -289,6 +289,14 @@ class AppBody extends React.Component {
         this.setState({ propCount: count });
         this.setState({ componentState: "prop" });
         this.setState({ anyProp: false });
+        this.setState({ loading: false });
+        await this.props.refresh();
+    }
+
+    // create button handler
+    async createHandler() {
+        this.setState({ loading: true });
+        this.setState({ componentState: "create" });
         this.setState({ loading: false });
         await this.props.refresh();
     }
@@ -353,7 +361,7 @@ class AppBody extends React.Component {
                             " ",
                             React.createElement(
                                 "button",
-                                { title: "A minimum of 0.001 ETH is required." },
+                                { title: "A minimum of 0.001 ETH is required.", onClick: this.createHandler },
                                 " Create A Proposal and Stake ETH "
                             ),
                             " "
@@ -416,6 +424,17 @@ class AppBody extends React.Component {
                         { className: "container" },
                         prop_count,
                         React.createElement(PropComponent, { isAny: this.state.anyProp, contract: this.props.contract }),
+                        React.createElement(BackButton, { handler: this.backHandler })
+                    );
+                } else if (this.state.componentState == "create") {
+                    content = React.createElement(
+                        "div",
+                        { className: "container" },
+                        React.createElement(
+                            "p",
+                            null,
+                            " Create New Proposal Component. "
+                        ),
                         React.createElement(BackButton, { handler: this.backHandler })
                     );
                 }

@@ -201,7 +201,7 @@ class AppBody extends React.Component {
         this.propHandler = this.propHandler.bind(this);
         this.propOwnHandler = this.propOwnHandler.bind(this);
         this.backHandler = this.backHandler.bind(this);
-        this.loadPropCount = this.loadPropCount.bind(this);
+        this.createHandler = this.createHandler.bind(this);
     }
 
     // prop button handler
@@ -220,6 +220,14 @@ class AppBody extends React.Component {
         this.setState({propCount: count});
         this.setState({componentState: "prop"});
         this.setState({anyProp: false});
+        this.setState({loading: false});
+        await this.props.refresh();
+    }
+
+    // create button handler
+    async createHandler() {
+        this.setState({loading: true});
+        this.setState({componentState: "create"});
         this.setState({loading: false});
         await this.props.refresh();
     }
@@ -250,7 +258,7 @@ class AppBody extends React.Component {
                     <div className = "row d-flex align-items-center justify-content-between">
                         <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button title = "Locate A Proposal By Their IDs." onClick = {this.propHandler}> Search or Vote On Proposal(s) </button> </div> 
                         <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button title = "View The Proposals That You Created." onClick = {this.propOwnHandler}> Find My Proposals </button> </div>
-                        <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button title = "A minimum of 0.001 ETH is required."> Create A Proposal and Stake ETH </button> </div>
+                        <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button title = "A minimum of 0.001 ETH is required." onClick = {this.createHandler}> Create A Proposal and Stake ETH </button> </div>
                         <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button title = "Update Your Total Withdrawable ETH Amount."> Update ETH </button> </div>
                         <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button title = "Withdraw all ETH to your wallet. Make sure to update withdrawable ETH first."> Withdraw ETH </button> </div>
                     </div>
@@ -276,6 +284,13 @@ class AppBody extends React.Component {
                     <div className = "container">
                         {prop_count}
                         <PropComponent isAny = {this.state.anyProp} contract = {this.props.contract}/>
+                        <BackButton handler = {this.backHandler}/>
+                    </div>
+                }
+                else if (this.state.componentState == "create") {
+                    content = 
+                    <div className = "container">
+                        <p> Create New Proposal Component. </p>
                         <BackButton handler = {this.backHandler}/>
                     </div>
                 }
