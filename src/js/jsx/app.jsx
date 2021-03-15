@@ -199,7 +199,7 @@ class AppBody extends React.Component {
     }
 
     constructor(props) {
-        super(props);
+        super(props); // props.contract: stores contact ABI
         this.state = {
             // App Stats
             componentState: "home",
@@ -209,6 +209,10 @@ class AppBody extends React.Component {
             // Proposal Stats
             anyProp: true, // true if the user is looking for their own proposals.
             propCount: 0,
+            
+            // New Proposal Info
+            newTitle: "",
+            newOffset: 0,
 
             // Network
             currentBlockNumber: 0
@@ -219,7 +223,9 @@ class AppBody extends React.Component {
         this.propOwnHandler = this.propOwnHandler.bind(this);
         this.backHandler = this.backHandler.bind(this);
         this.createHandler = this.createHandler.bind(this);
-        // this.submitHandler = this.submitHandler.bind(this);
+        this.titleHandler = this.titleHandler.bind(this);
+        this.offsetHandler = this.offsetHandler.bind(this);
+        this.submitHandler = this.submitHandler.bind(this);
     }
 
     // prop button handler
@@ -257,10 +263,19 @@ class AppBody extends React.Component {
         await this.props.refresh();
     }
 
-    
-    // async submitHandler() {
+    // update proposal title
+    titleHandler(event) {
+        this.setState({newTitle: event.target.value});
+    }
 
-    // }
+    // update offset
+    offsetHandler(event) {
+        this.setState({newOffset: event.target.value});
+    }
+
+    submitHandler() {
+        
+    }
 
     render() {
         let content;
@@ -319,16 +334,16 @@ class AppBody extends React.Component {
                                 <div className = "row">
                                     <label>
                                         Title:
-                                        <input type = "text" style = {{margin: "3px"}} required/>
+                                        <input type = "text" style = {{margin: "3px"}} value = {this.state.newTitle} onChange = {this.titleHandler} required/>
                                     </label>
                                 </div>
                                 <div className = "row">
                                     <label>
                                         End Block Number Offset:
-                                        <input type = "text" style = {{margin: "3px"}} required/>
+                                        <input type = "text" style = {{margin: "3px"}} value = {this.state.newOffset} onChange = {this.offsetHandler} required/>
                                     </label>
                                 </div>
-                                <button> Submit </button>
+                                <button onClick = {this.submitHandler}> Submit </button>
                             </form>
                         </div>
                         <p> Current Block Number: {this.state.currentBlockNumber} </p>
