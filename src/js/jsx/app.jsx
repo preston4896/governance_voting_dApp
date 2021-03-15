@@ -79,7 +79,6 @@ class App extends React.Component {
             // user-staking info
             amountDeposited: "0",
             amountWithdrawable: "0",
-            userOwnedProp: "0",
 
             // network info
             network: "-1",
@@ -113,7 +112,7 @@ class App extends React.Component {
                         <div className = "col"> <p> Total staked: {this.state.amountDeposited} ETH </p> </div>
                         <div className = "col"> <p> Withdrawable amount: {this.state.amountWithdrawable} ETH </p>  </div>
                     </div>
-                    <p> You created {this.state.userOwnedProp} proposal(s). You may create a new one or vote on active proposals. </p>
+                    <p> Select An Option Below To Begin. </p>
                     <p> A minimum of 0.001 ETH is required to create a new proposal. </p>
                     <AppBody contract = {this.state.voteContract}/>
                 </div>;
@@ -247,7 +246,8 @@ class AppBody extends React.Component {
 
     // back button handler
     backHandler() {
-        this.setState({componentState: "home"})
+        this.setState({transactionFailed: false});
+        this.setState({componentState: "home"});
     }
 
     render() {
@@ -257,7 +257,11 @@ class AppBody extends React.Component {
         }
         else {
             if (this.state.transactionFailed) {
-                content = <p> Error: The transaction did not go through. Please try again. </p>;
+                content = 
+                <div className = "container">
+                    <p> Error: The transaction did not go through. Please try again. </p>
+                    <BackButton handler = {this.backHandler}/>
+                </div>
             }
             else {
                 if (this.state.componentState == "home") {
@@ -272,9 +276,25 @@ class AppBody extends React.Component {
                 }
                 else if (this.state.componentState == "prop") {
                     // load the proposal here.
+                    let prop_count;
+
+                    if (this.state.anyProp) {
+                        prop_count = 
+                        <div className = "container">
+                            <p> Proposal Count: {this.state.propCount} </p>
+                        </div>
+                    }
+                    else {
+                        prop_count = 
+                        <div className = "container">
+                            <p> You have created {this.state.propCount} proposals so far. </p>
+                        </div>
+                    }
+
                     content = 
                     <div className = "container">
-                        <p> Proposal Count: {this.state.propCount} </p>
+                        {prop_count}
+                        <PropComponent isAny = {this.state.anyProp}/>
                         <BackButton handler = {this.backHandler}/>
                     </div>
                 }
@@ -293,7 +313,22 @@ class AppBody extends React.Component {
 
 function BackButton(props) {
     return (
-        <button id = "back-btn" onClick = {props.handler}> Back </button>
+        <button onClick = {props.handler}> Back </button>
+    )
+}
+
+function PropComponent(props) {
+    let body;
+    if (props.isAny == true) {
+        body = <p> General Proposal Component is here. </p>
+    }
+    else {
+        body =  <p> Specific Proposal Component is here. </p>
+    }
+    return (
+        <div className = "container">
+            {body}
+        </div>
     )
 }
 

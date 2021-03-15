@@ -77,7 +77,6 @@ class App extends React.Component {
             // user-staking info
             amountDeposited: "0",
             amountWithdrawable: "0",
-            userOwnedProp: "0",
 
             // network info
             network: "-1",
@@ -148,9 +147,7 @@ class App extends React.Component {
                     React.createElement(
                         "p",
                         null,
-                        " You created ",
-                        this.state.userOwnedProp,
-                        " proposal(s). You may create a new one or vote on active proposals. "
+                        " Select An Option Below To Begin. "
                     ),
                     React.createElement(
                         "p",
@@ -321,6 +318,7 @@ class AppBody extends React.Component {
 
     // back button handler
     backHandler() {
+        this.setState({ transactionFailed: false });
         this.setState({ componentState: "home" });
     }
 
@@ -335,9 +333,14 @@ class AppBody extends React.Component {
         } else {
             if (this.state.transactionFailed) {
                 content = React.createElement(
-                    "p",
-                    null,
-                    " Error: The transaction did not go through. Please try again. "
+                    "div",
+                    { className: "container" },
+                    React.createElement(
+                        "p",
+                        null,
+                        " Error: The transaction did not go through. Please try again. "
+                    ),
+                    React.createElement(BackButton, { handler: this.backHandler })
                 );
             } else {
                 if (this.state.componentState == "home") {
@@ -402,16 +405,39 @@ class AppBody extends React.Component {
                     );
                 } else if (this.state.componentState == "prop") {
                     // load the proposal here.
+                    let prop_count;
+
+                    if (this.state.anyProp) {
+                        prop_count = React.createElement(
+                            "div",
+                            { className: "container" },
+                            React.createElement(
+                                "p",
+                                null,
+                                " Proposal Count: ",
+                                this.state.propCount,
+                                " "
+                            )
+                        );
+                    } else {
+                        prop_count = React.createElement(
+                            "div",
+                            { className: "container" },
+                            React.createElement(
+                                "p",
+                                null,
+                                " You have created ",
+                                this.state.propCount,
+                                " proposals so far. "
+                            )
+                        );
+                    }
+
                     content = React.createElement(
                         "div",
                         { className: "container" },
-                        React.createElement(
-                            "p",
-                            null,
-                            " Proposal Count: ",
-                            this.state.propCount,
-                            " "
-                        ),
+                        prop_count,
+                        React.createElement(PropComponent, { isAny: this.state.anyProp }),
                         React.createElement(BackButton, { handler: this.backHandler })
                     );
                 }
@@ -431,8 +457,30 @@ class AppBody extends React.Component {
 function BackButton(props) {
     return React.createElement(
         "button",
-        { id: "back-btn", onClick: props.handler },
+        { onClick: props.handler },
         " Back "
+    );
+}
+
+function PropComponent(props) {
+    let body;
+    if (props.isAny == true) {
+        body = React.createElement(
+            "p",
+            null,
+            " General Proposal Component is here. "
+        );
+    } else {
+        body = React.createElement(
+            "p",
+            null,
+            " Specific Proposal Component is here. "
+        );
+    }
+    return React.createElement(
+        "div",
+        { className: "container" },
+        body
     );
 }
 
