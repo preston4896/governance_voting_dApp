@@ -159,36 +159,7 @@ class App extends React.Component {
     }
 }
 
-// TODO
 class AppBody extends React.Component {
-
-    /**
-     * Load a proposal by the given query (ID or ownerIndex).
-     * @param {Number} query - The proposalID or the index to query the owner's proposal.
-     * @param {Boolean} callerIsOwner - True: query IDs; False: query indices.
-     * @returns {Object} The Proposal Object. { uint256 id, address proposer, string title, uint256 yay_count, uint256 nay_count, uint256 total_deposit, uint256 begin_block_number, uint256 end_block_number }
-     */
-     async loadProposal(query, callerIsOwner) {
-        const vote = this.props.contract;
-        let resItem = new Array(8);
-        try {
-            resItem = await votes.methods.get_proposals(query, callerIsOwner).call(8);
-        } catch (error) {
-            window.alert("Unable to load proposal.");
-        }
-        let res = 
-        {
-            id: resItem[0],
-            proposer: resItem[1],
-            title: resItem[2],
-            yay_count: resItem[3],
-            nay_count: resItem[4],
-            total_deposit: resItem[5],
-            begin_block_number: resItem[6],
-            end_block_number: resItem[7]
-        }
-        return res;
-    }
 
     /**
      * Load the total proposal count or the number of proposal created.
@@ -216,13 +187,11 @@ class AppBody extends React.Component {
             transactionFailed: false,
             loading: false,
             anyProp: true, // true if the user is looking for their own proposals.
-            proposal: {},
             propCount: 0
         }
         this.propHandler = this.propHandler.bind(this);
         this.propOwnHandler = this.propOwnHandler.bind(this);
         this.backHandler = this.backHandler.bind(this);
-        this.loadProposal = this.loadProposal.bind(this);
         this.loadPropCount = this.loadPropCount.bind(this);
     }
 
@@ -294,7 +263,7 @@ class AppBody extends React.Component {
                     content = 
                     <div className = "container">
                         {prop_count}
-                        <PropComponent isAny = {this.state.anyProp}/>
+                        <PropComponent isAny = {this.state.anyProp} contract = {this.props.contract}/>
                         <BackButton handler = {this.backHandler}/>
                     </div>
                 }
@@ -317,19 +286,54 @@ function BackButton(props) {
     )
 }
 
-function PropComponent(props) {
-    let body;
-    if (props.isAny == true) {
-        body = <p> General Proposal Component is here. </p>
+class PropComponent extends React.Component {
+    
+    /**
+     * Load a proposal by the given query (ID or ownerIndex).
+     * @param {Number} query - The proposalID or the index to query the owner's proposal.
+     * @param {Boolean} callerIsOwner - True: query IDs; False: query indices.
+     * @returns {Object} The Proposal Object. { uint256 id, address proposer, string title, uint256 yay_count, uint256 nay_count, uint256 total_deposit, uint256 begin_block_number, uint256 end_block_number }
+     */
+     async loadProposal(query, callerIsOwner) {
+        const vote = this.props.contract;
+        let resItem = new Array(8);
+        try {
+            resItem = await votes.methods.get_proposals(query, callerIsOwner).call(8);
+        } catch (error) {
+            window.alert("Unable to load proposal.");
+        }
+        let res = 
+        {
+            id: resItem[0],
+            proposer: resItem[1],
+            title: resItem[2],
+            yay_count: resItem[3],
+            nay_count: resItem[4],
+            total_deposit: resItem[5],
+            begin_block_number: resItem[6],
+            end_block_number: resItem[7]
+        }
+        return res;
     }
-    else {
-        body =  <p> Specific Proposal Component is here. </p>
+    
+    constructor(props) {
+        super(props);
     }
-    return (
-        <div className = "container">
-            {body}
-        </div>
-    )
+
+    render() {
+        let body;
+        if (this.props.isAny) {
+            body = <p> General Proposal Component is here. </p>
+        }
+        else {
+            body =  <p> Specific Proposal Component is here. </p>
+        }
+        return (
+            <div className = "container">
+                {body}
+            </div>
+        )
+    }
 }
 
 
