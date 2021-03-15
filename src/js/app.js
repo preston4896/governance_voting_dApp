@@ -360,16 +360,24 @@ class AppBody extends React.Component {
             const weiAmount = web3.utils.toWei(this.state.amount.toString(), "ether");
 
             // submit proposal
-            await vote.methods.create(this.state.newTitle, this.state.newOffset).send({ from: sender, value: weiAmount }).on("transactionHash", hash => {
+            try {
+                await vote.methods.create(this.state.newTitle, this.state.newOffset).send({ from: sender, value: weiAmount }).on("transactionHash", hash => {
+                    this.setState({ loading: false });
+                    this.setState({ newTitle: "" });
+                    this.setState({ newOffset: "" });
+                    this.setState({ amount: "0.001" });
+                    this.setState({ componentState: "home" });
+                    console.log("proposal submitted succesfully");
+                }).on("error", error => {
+                    this.setState({ loading: false });
+                    this.setState({ transactionFailed: true });
+                    console.error("Transaction failed (Preston)", error);
+                });
+            } catch (error) {
                 this.setState({ loading: false });
-                this.setState({ componentState: "home" });
-                console.log("proposal submitted succesfully");
-                console.log(this.state.newTitle);
-                console.log(this.state.newOffset);
-            }).on("error", error => {
                 this.setState({ transactionFailed: true });
-                console.error("Transaction failed", error);
-            });
+                console.error("Rejection hurts (Preston)", error);
+            }
         } else {
             this.setState({ componentState: "create" });
         }
@@ -506,43 +514,39 @@ class AppBody extends React.Component {
                                 " New Proposal "
                             ),
                             React.createElement(
-                                "form",
-                                null,
+                                "div",
+                                { className: "row" },
                                 React.createElement(
-                                    "div",
-                                    { className: "row" },
-                                    React.createElement(
-                                        "label",
-                                        null,
-                                        "Title:",
-                                        React.createElement("input", { required: true, type: "text", style: { margin: "3px" }, value: this.state.newTitle, onChange: this.titleHandler })
-                                    )
-                                ),
-                                React.createElement(
-                                    "div",
-                                    { className: "row" },
-                                    React.createElement(
-                                        "label",
-                                        null,
-                                        "End Block Number Offset:",
-                                        React.createElement("input", { required: true, type: "number", min: "1", style: { margin: "3px" }, value: this.state.newOffset, onChange: this.offsetHandler })
-                                    )
-                                ),
-                                React.createElement(
-                                    "div",
-                                    { className: "row" },
-                                    React.createElement(
-                                        "label",
-                                        null,
-                                        "Deposit Amount:",
-                                        React.createElement("input", { required: true, type: "number", min: "0.001", style: { margin: "3px" }, value: this.state.amount, onChange: this.depositHandler })
-                                    )
-                                ),
-                                React.createElement(
-                                    "button",
-                                    { onClick: this.submitHandler },
-                                    " Submit "
+                                    "label",
+                                    null,
+                                    "Title:",
+                                    React.createElement("input", { required: true, type: "text", style: { margin: "3px" }, value: this.state.newTitle, onChange: this.titleHandler })
                                 )
+                            ),
+                            React.createElement(
+                                "div",
+                                { className: "row" },
+                                React.createElement(
+                                    "label",
+                                    null,
+                                    "End Block Number Offset:",
+                                    React.createElement("input", { required: true, type: "number", min: "1", style: { margin: "3px" }, value: this.state.newOffset, onChange: this.offsetHandler })
+                                )
+                            ),
+                            React.createElement(
+                                "div",
+                                { className: "row" },
+                                React.createElement(
+                                    "label",
+                                    null,
+                                    "Deposit Amount:",
+                                    React.createElement("input", { required: true, type: "number", min: "0.001", style: { margin: "3px" }, value: this.state.amount, onChange: this.depositHandler })
+                                )
+                            ),
+                            React.createElement(
+                                "button",
+                                { onClick: this.submitHandler },
+                                " Submit "
                             )
                         ),
                         React.createElement(

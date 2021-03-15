@@ -292,18 +292,26 @@ class AppBody extends React.Component {
             const weiAmount = web3.utils.toWei(this.state.amount.toString(), "ether");
 
             // submit proposal
-            await vote.methods.create(this.state.newTitle, this.state.newOffset).send({from: sender, value: weiAmount})
-            .on("transactionHash", (hash) => {
+            try {
+                await vote.methods.create(this.state.newTitle, this.state.newOffset).send({from: sender, value: weiAmount})
+                .on("transactionHash", (hash) => {
+                    this.setState({loading: false});
+                    this.setState({newTitle: ""});
+                    this.setState({newOffset: ""});
+                    this.setState({amount: "0.001"});
+                    this.setState({componentState: "home"});
+                    console.log("proposal submitted succesfully");
+                })
+                .on("error", (error) => {
+                    this.setState({loading: false});
+                    this.setState({transactionFailed: true});
+                    console.error("Transaction failed (Preston)", error);
+                });
+            } catch (error) {
                 this.setState({loading: false});
-                this.setState({componentState: "home"});
-                console.log("proposal submitted succesfully");
-                console.log(this.state.newTitle);
-                console.log(this.state.newOffset);
-            })
-            .on("error", (error) => {
                 this.setState({transactionFailed: true});
-                console.error("Transaction failed", error);
-            });
+                console.error("Rejection hurts (Preston)", error);
+            }
         }
         else {
             this.setState({componentState: "create"});
@@ -363,27 +371,25 @@ class AppBody extends React.Component {
                     <div className = "container">
                         <div className = "col" style = {{margin: "10px", border: "dashed black"}}>
                             <p> New Proposal </p>
-                            <form>
-                                <div className = "row">
-                                    <label>
-                                        Title:
-                                        <input required type = "text" style = {{margin: "3px"}} value = {this.state.newTitle} onChange = {this.titleHandler}/>
-                                    </label>
-                                </div>
-                                <div className = "row">
-                                    <label>
-                                        End Block Number Offset:
-                                        <input required type = "number" min = "1" style = {{margin: "3px"}} value = {this.state.newOffset} onChange = {this.offsetHandler}/>
-                                    </label>
-                                </div>
-                                <div className = "row">
-                                    <label>
-                                        Deposit Amount:
-                                        <input required type = "number" min = "0.001" style = {{margin: "3px"}} value = {this.state.amount} onChange = {this.depositHandler}/>
-                                    </label>
-                                </div>
-                                <button onClick = {this.submitHandler}> Submit </button>
-                            </form>
+                            <div className = "row">
+                                <label>
+                                    Title:
+                                    <input required type = "text" style = {{margin: "3px"}} value = {this.state.newTitle} onChange = {this.titleHandler}/>
+                                </label>
+                            </div>
+                            <div className = "row">
+                                <label>
+                                    End Block Number Offset:
+                                    <input required type = "number" min = "1" style = {{margin: "3px"}} value = {this.state.newOffset} onChange = {this.offsetHandler}/>
+                                </label>
+                            </div>
+                            <div className = "row">
+                                <label>
+                                    Deposit Amount:
+                                    <input required type = "number" min = "0.001" style = {{margin: "3px"}} value = {this.state.amount} onChange = {this.depositHandler}/>
+                                </label>
+                            </div>
+                            <button onClick = {this.submitHandler}> Submit </button>
                         </div>
                         <p> Current Block Number: {this.state.currentBlockNumber} </p>
                         <p> An average block time is approximately 10-20 seconds (Mainnet, Rinkeby and Goerli). An offset of 1 would mean that your proposal would only last for 20 seconds at most. </p>
