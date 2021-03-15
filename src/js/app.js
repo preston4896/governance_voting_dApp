@@ -358,16 +358,17 @@ class AppBody extends React.Component {
             const vote = this.props.contract;
 
             const weiAmount = web3.utils.toWei(this.state.amount.toString(), "ether");
+            const estimateGasLimit = await vote.methods.create(this.state.newTitle, this.state.newOffset).estimateGas({ from: sender, value: weiAmount });
 
             // submit proposal
             try {
-                await vote.methods.create(this.state.newTitle, this.state.newOffset).send({ from: sender, value: weiAmount }).on("transactionHash", hash => {
+                await vote.methods.create(this.state.newTitle, this.state.newOffset).send({ from: sender, value: weiAmount, gas: estimateGasLimit }).on("transactionHash", hash => {
                     this.setState({ loading: false });
                     this.setState({ newTitle: "" });
                     this.setState({ newOffset: "" });
                     this.setState({ amount: "0.001" });
                     this.setState({ componentState: "home" });
-                    console.log("proposal submitted succesfully");
+                    window.alert("Your Proposal Has Been Successfully Created.");
                 }).on("error", error => {
                     this.setState({ loading: false });
                     this.setState({ transactionFailed: true });
