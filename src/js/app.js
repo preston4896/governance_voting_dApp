@@ -67,6 +67,15 @@ async function loadData() {
 
 class App extends React.Component {
 
+    /**
+     * Gets the last block number prossessed by the contract.
+     */
+    async updateBlockNum() {
+        const vote = this.state.voteContract;
+        let blockNum = await vote.methods.lastBlockNumber().call();
+        this.setState({ lastSyncedBlock: blockNum });
+    }
+
     constructor(props) {
         super(props);
         this.state = {
@@ -93,6 +102,7 @@ class App extends React.Component {
             // bind fucntions
         };loadWeb3 = loadWeb3.bind(this);
         loadData = loadData.bind(this);
+        this.updateBlockNum = this.updateBlockNum.bind(this);
     }
 
     render() {
@@ -147,14 +157,9 @@ class App extends React.Component {
                     React.createElement(
                         "p",
                         null,
-                        " Select An Option Below To Begin. "
-                    ),
-                    React.createElement(
-                        "p",
-                        null,
                         " A minimum of 0.001 ETH is required to create a new proposal. "
                     ),
-                    React.createElement(AppBody, { contract: this.state.voteContract })
+                    React.createElement(AppBody, { contract: this.state.voteContract, refresh: this.updateBlockNum })
                 );
                 footer = React.createElement(
                     "footer",
@@ -276,6 +281,7 @@ class AppBody extends React.Component {
         this.setState({ componentState: "prop" });
         this.setState({ anyProp: true });
         this.setState({ loading: false });
+        await this.props.refresh();
     }
     async propOwnHandler() {
         this.setState({ loading: true });
@@ -284,12 +290,14 @@ class AppBody extends React.Component {
         this.setState({ componentState: "prop" });
         this.setState({ anyProp: false });
         this.setState({ loading: false });
+        await this.props.refresh();
     }
 
     // back button handler
-    backHandler() {
+    async backHandler() {
         this.setState({ transactionFailed: false });
         this.setState({ componentState: "home" });
+        await this.props.refresh();
     }
 
     render() {
@@ -432,6 +440,7 @@ function BackButton(props) {
     );
 }
 
+// TODO
 class PropComponent extends React.Component {
 
     /**
@@ -461,28 +470,82 @@ class PropComponent extends React.Component {
         return res;
     }
 
+    /**
+     * Initialize the Proposal Component
+     * @param {object} props - props.contract: contract ABI, props.isAny: True, if user is looking for any proposal. False otherwise, user is looking for their own proposal.
+     */
     constructor(props) {
         super(props);
+        this.state = {
+            proposal: undefined
+        };
     }
 
     render() {
         let body;
+        let propBody;
+
+        // proposalBody component
+        if (!this.state.proposal) {
+            propBody = React.createElement(
+                "div",
+                { className: "container" },
+                React.createElement(
+                    "p",
+                    null,
+                    " Waiting to fetch proposal... "
+                )
+            );
+        } else {
+            propBody = React.createElement("div", { className: "container" });
+        }
+
+        // page body component
         if (this.props.isAny) {
             body = React.createElement(
-                "p",
-                null,
-                " General Proposal Component is here. "
+                "div",
+                { className: "container-fluid" },
+                React.createElement(
+                    "div",
+                    { className: "row" },
+                    React.createElement(
+                        "div",
+                        { className: "col" },
+                        React.createElement("input", { placeholder: "Enter Proposal ID" }),
+                        React.createElement(
+                            "button",
+                            null,
+                            " Search "
+                        )
+                    )
+                ),
+                propBody
             );
         } else {
             body = React.createElement(
-                "p",
-                null,
-                " Specific Proposal Component is here. "
+                "div",
+                { className: "container-fluid" },
+                React.createElement(
+                    "div",
+                    { className: "row" },
+                    React.createElement(
+                        "div",
+                        { className: "col" },
+                        React.createElement("input", { placeholder: "Enter Proposal ID" }),
+                        React.createElement(
+                            "button",
+                            null,
+                            " Search "
+                        )
+                    )
+                ),
+                propBody
             );
         }
+
         return React.createElement(
             "div",
-            { className: "container" },
+            { className: "container", style: { border: "dotted black", margin: "10px" } },
             body
         );
     }

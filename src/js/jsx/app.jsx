@@ -69,6 +69,15 @@ async function loadData() {
 
 class App extends React.Component {
 
+    /**
+     * Gets the last block number prossessed by the contract.
+     */
+    async updateBlockNum() {
+        const vote = this.state.voteContract;
+        let blockNum = await vote.methods.lastBlockNumber().call();
+        this.setState({lastSyncedBlock: blockNum});
+    }
+
     constructor(props) {
         super(props);
         this.state = {
@@ -95,6 +104,7 @@ class App extends React.Component {
         // bind fucntions
         loadWeb3 = loadWeb3.bind(this);
         loadData = loadData.bind(this);
+        this.updateBlockNum = this.updateBlockNum.bind(this);
     }
     
     render() {
@@ -112,9 +122,8 @@ class App extends React.Component {
                         <div className = "col"> <p> Total staked: {this.state.amountDeposited} ETH </p> </div>
                         <div className = "col"> <p> Withdrawable amount: {this.state.amountWithdrawable} ETH </p>  </div>
                     </div>
-                    <p> Select An Option Below To Begin. </p>
                     <p> A minimum of 0.001 ETH is required to create a new proposal. </p>
-                    <AppBody contract = {this.state.voteContract}/>
+                    <AppBody contract = {this.state.voteContract} refresh = {this.updateBlockNum}/>
                 </div>;
                 footer = 
                 <footer> 
@@ -203,6 +212,7 @@ class AppBody extends React.Component {
         this.setState({componentState: "prop"});
         this.setState({anyProp: true});
         this.setState({loading: false});
+        await this.props.refresh();
     }
     async propOwnHandler() {
         this.setState({loading: true});
@@ -211,12 +221,14 @@ class AppBody extends React.Component {
         this.setState({componentState: "prop"});
         this.setState({anyProp: false});
         this.setState({loading: false});
+        await this.props.refresh();
     }
 
     // back button handler
-    backHandler() {
+    async backHandler() {
         this.setState({transactionFailed: false});
         this.setState({componentState: "home"});
+        await this.props.refresh();
     }
 
     render() {
@@ -286,6 +298,7 @@ function BackButton(props) {
     )
 }
 
+// TODO
 class PropComponent extends React.Component {
     
     /**
@@ -294,7 +307,7 @@ class PropComponent extends React.Component {
      * @param {Boolean} callerIsOwner - True: query IDs; False: query indices.
      * @returns {Object} The Proposal Object. { uint256 id, address proposer, string title, uint256 yay_count, uint256 nay_count, uint256 total_deposit, uint256 begin_block_number, uint256 end_block_number }
      */
-     async loadProposal(query, callerIsOwner) {
+    async loadProposal(query, callerIsOwner) {
         const vote = this.props.contract;
         let resItem = new Array(8);
         try {
@@ -316,20 +329,63 @@ class PropComponent extends React.Component {
         return res;
     }
     
+    /**
+     * Initialize the Proposal Component
+     * @param {object} props - props.contract: contract ABI, props.isAny: True, if user is looking for any proposal. False otherwise, user is looking for their own proposal.
+     */
     constructor(props) {
         super(props);
+        this.state = {
+            proposal: undefined
+        }
     }
 
     render() {
         let body;
-        if (this.props.isAny) {
-            body = <p> General Proposal Component is here. </p>
+        let propBody;
+
+        // proposalBody component
+        if (!this.state.proposal) {
+            propBody = 
+            <div className = "container"> 
+                <p> Waiting to fetch proposal... </p>
+            </div>
         }
         else {
-            body =  <p> Specific Proposal Component is here. </p>
+            propBody = 
+            <div className = "container"> 
+                
+            </div>
         }
+
+        // page body component
+        if (this.props.isAny) {
+            body = 
+            <div className = "container-fluid">
+                <div className = "row">
+                    <div className = "col"> 
+                        <input placeholder = "Enter Proposal ID"/>
+                        <button> Search </button>
+                    </div>
+                </div>
+                {propBody}
+            </div>
+        }
+        else {
+            body = 
+            <div className = "container-fluid">
+               <div className = "row">
+                    <div className = "col"> 
+                        <input placeholder = "Enter Proposal ID"/>
+                        <button> Search </button>
+                    </div>
+                </div>
+                {propBody}
+            </div>
+        }
+
         return (
-            <div className = "container">
+            <div className = "container" style = {{border: "dotted black", margin: "10px"}}>
                 {body}
             </div>
         )
