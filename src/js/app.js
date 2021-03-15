@@ -67,10 +67,11 @@ async function loadData() {
 
 class App extends React.Component {
 
+    // TODO
     /**
-     * Gets the last block number prossessed by the contract.
+     * Gets the last block number prossessed by the contract, user staked and withdrawable.
      */
-    async updateBlockNum() {
+    async reloadHome() {
         const vote = this.state.voteContract;
         let blockNum = await vote.methods.lastBlockNumber().call();
         this.setState({ lastSyncedBlock: blockNum });
@@ -102,7 +103,7 @@ class App extends React.Component {
             // bind fucntions
         };loadWeb3 = loadWeb3.bind(this);
         loadData = loadData.bind(this);
-        this.updateBlockNum = this.updateBlockNum.bind(this);
+        this.reloadHome = this.reloadHome.bind(this);
     }
 
     render() {
@@ -159,7 +160,7 @@ class App extends React.Component {
                         null,
                         " A minimum of 0.001 ETH is required to create a new proposal. "
                     ),
-                    React.createElement(AppBody, { contract: this.state.voteContract, refresh: this.updateBlockNum })
+                    React.createElement(AppBody, { contract: this.state.voteContract, refresh: this.reloadHome })
                 );
                 footer = React.createElement(
                     "footer",
@@ -258,19 +259,35 @@ class AppBody extends React.Component {
         return res;
     }
 
+    /**
+     * Loads the current block number.
+     */
+    async getCurrentBlockNumber() {
+        const blockNum = await window.web3.eth.getBlockNumber();
+        this.setState({ currentBlockNumber: blockNum });
+    }
+
     constructor(props) {
         super(props);
         this.state = {
+            // App Stats
             componentState: "home",
-            transactionFailed: false,
             loading: false,
+            transactionFailed: false,
+
+            // Proposal Stats
             anyProp: true, // true if the user is looking for their own proposals.
-            propCount: 0
-        };
-        this.propHandler = this.propHandler.bind(this);
+            propCount: 0,
+
+            // Network
+            currentBlockNumber: 0
+
+            // Binding functions
+        };this.propHandler = this.propHandler.bind(this);
         this.propOwnHandler = this.propOwnHandler.bind(this);
         this.backHandler = this.backHandler.bind(this);
         this.createHandler = this.createHandler.bind(this);
+        // this.submitHandler = this.submitHandler.bind(this);
     }
 
     // prop button handler
@@ -307,6 +324,10 @@ class AppBody extends React.Component {
         this.setState({ componentState: "home" });
         await this.props.refresh();
     }
+
+    // async submitHandler() {
+
+    // }
 
     render() {
         let content;
@@ -414,7 +435,7 @@ class AppBody extends React.Component {
                                 null,
                                 " You have created ",
                                 this.state.propCount,
-                                " proposals so far. "
+                                " proposal(s) so far. "
                             )
                         );
                     }
@@ -423,7 +444,7 @@ class AppBody extends React.Component {
                         "div",
                         { className: "container" },
                         prop_count,
-                        React.createElement(PropComponent, { isAny: this.state.anyProp, contract: this.props.contract }),
+                        React.createElement(ViewPropComponent, { isAny: this.state.anyProp, contract: this.props.contract }),
                         React.createElement(BackButton, { handler: this.backHandler })
                     );
                 } else if (this.state.componentState == "create") {
@@ -431,9 +452,54 @@ class AppBody extends React.Component {
                         "div",
                         { className: "container" },
                         React.createElement(
+                            "div",
+                            { className: "col", style: { margin: "10px", border: "dashed black" } },
+                            React.createElement(
+                                "p",
+                                null,
+                                " New Proposal "
+                            ),
+                            React.createElement(
+                                "form",
+                                null,
+                                React.createElement(
+                                    "div",
+                                    { className: "row" },
+                                    React.createElement(
+                                        "label",
+                                        null,
+                                        "Title:",
+                                        React.createElement("input", { type: "text", style: { margin: "3px" }, required: true })
+                                    )
+                                ),
+                                React.createElement(
+                                    "div",
+                                    { className: "row" },
+                                    React.createElement(
+                                        "label",
+                                        null,
+                                        "End Block Number Offset:",
+                                        React.createElement("input", { type: "text", style: { margin: "3px" }, required: true })
+                                    )
+                                ),
+                                React.createElement(
+                                    "button",
+                                    null,
+                                    " Submit "
+                                )
+                            )
+                        ),
+                        React.createElement(
                             "p",
                             null,
-                            " Create New Proposal Component. "
+                            " Current Block Number: ",
+                            this.state.currentBlockNumber,
+                            " "
+                        ),
+                        React.createElement(
+                            "p",
+                            null,
+                            " An average block time is approximately 10-20 seconds (Mainnet, Rinkeby and Goerli). An offset of 1 would mean that your proposal would only last for 20 seconds at most. "
                         ),
                         React.createElement(BackButton, { handler: this.backHandler })
                     );
@@ -446,6 +512,11 @@ class AppBody extends React.Component {
             { className: "container" },
             content
         );
+    }
+
+    // live-render block number
+    async componentDidUpdate() {
+        await this.getCurrentBlockNumber();
     }
 }
 
@@ -460,7 +531,7 @@ function BackButton(props) {
 }
 
 // TODO
-class PropComponent extends React.Component {
+class ViewPropComponent extends React.Component {
 
     /**
      * Load a proposal by the given query (ID or ownerIndex).
