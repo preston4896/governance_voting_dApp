@@ -281,7 +281,8 @@ class AppBody extends React.Component {
 
             // New Proposal Info
             newTitle: "",
-            newOffset: 0,
+            newOffset: "",
+            amount: "0.001",
 
             // Network
             currentBlockNumber: 0
@@ -293,6 +294,7 @@ class AppBody extends React.Component {
         this.createHandler = this.createHandler.bind(this);
         this.titleHandler = this.titleHandler.bind(this);
         this.offsetHandler = this.offsetHandler.bind(this);
+        this.depositHandler = this.depositHandler.bind(this);
         this.submitHandler = this.submitHandler.bind(this);
     }
 
@@ -341,8 +343,36 @@ class AppBody extends React.Component {
         this.setState({ newOffset: event.target.value });
     }
 
-    submitHandler() {
-        console.log(this.state.newTitle, this.state.newOffset);
+    // deposit handler
+    depositHandler(event) {
+        this.setState({ amount: event.target.value });
+    }
+
+    async submitHandler() {
+        const inputsAreValid = this.state.newTitle !== "" && this.state.newOffset !== "" && parseFloat(this.state.amount) >= 0.001;
+        if (inputsAreValid) {
+            this.setState({ loading: true });
+
+            const accounts = await window.web3.eth.getAccounts();
+            const sender = accounts[0];
+            const vote = this.props.contract;
+
+            const weiAmount = web3.utils.toWei(this.state.amount.toString(), "ether");
+
+            // submit proposal
+            await vote.methods.create(this.state.newTitle, this.state.newOffset).send({ from: sender, value: weiAmount }).on("transactionHash", hash => {
+                this.setState({ loading: false });
+                this.setState({ componentState: "home" });
+                console.log("proposal submitted succesfully");
+                console.log(this.state.newTitle);
+                console.log(this.state.newOffset);
+            }).on("error", error => {
+                this.setState({ transactionFailed: true });
+                console.error("Transaction failed", error);
+            });
+        } else {
+            this.setState({ componentState: "create" });
+        }
     }
 
     render() {
@@ -485,7 +515,7 @@ class AppBody extends React.Component {
                                         "label",
                                         null,
                                         "Title:",
-                                        React.createElement("input", { type: "text", style: { margin: "3px" }, value: this.state.newTitle, onChange: this.titleHandler, required: true })
+                                        React.createElement("input", { required: true, type: "text", style: { margin: "3px" }, value: this.state.newTitle, onChange: this.titleHandler })
                                     )
                                 ),
                                 React.createElement(
@@ -495,7 +525,17 @@ class AppBody extends React.Component {
                                         "label",
                                         null,
                                         "End Block Number Offset:",
-                                        React.createElement("input", { type: "text", style: { margin: "3px" }, value: this.state.newOffset, onChange: this.offsetHandler, required: true })
+                                        React.createElement("input", { required: true, type: "number", min: "1", style: { margin: "3px" }, value: this.state.newOffset, onChange: this.offsetHandler })
+                                    )
+                                ),
+                                React.createElement(
+                                    "div",
+                                    { className: "row" },
+                                    React.createElement(
+                                        "label",
+                                        null,
+                                        "Deposit Amount:",
+                                        React.createElement("input", { required: true, type: "number", min: "0.001", style: { margin: "3px" }, value: this.state.amount, onChange: this.depositHandler })
                                     )
                                 ),
                                 React.createElement(
@@ -516,6 +556,11 @@ class AppBody extends React.Component {
                             "p",
                             null,
                             " An average block time is approximately 10-20 seconds (Mainnet, Rinkeby and Goerli). An offset of 1 would mean that your proposal would only last for 20 seconds at most. "
+                        ),
+                        React.createElement(
+                            "p",
+                            { style: { fontStyle: "strong", color: "red" } },
+                            " WARNING: You must deposit more than 0.001 ETH, otherwise the transaction will fail. "
                         ),
                         React.createElement(BackButton, { handler: this.backHandler })
                     );
