@@ -24,6 +24,7 @@ contract Vote {
      * @param deposit_balance - The total amount of ETH deposited for the proposal.
      * @param begin_block_number - The block number when the proposal is created.
      * @param end_block_number - The block number when the proposal becomes inactive.
+     * @param max_deposit - The maximum amount of ETH can be staked by the voters to avoid manipulation of the vote consensus.
      */
     struct Proposal {
         uint256 id;
@@ -34,6 +35,7 @@ contract Vote {
         uint256 deposit_balance;
         uint256 begin_block_number;
         uint256 end_block_number;
+        uint256 max_deposit;
     }
 
     enum Voter_Status {
@@ -142,7 +144,8 @@ contract Vote {
         uint id = total_proposals.add(1);
         total_proposals = id;
         uint endBlock = block.number.add(endOffset);
-        Proposal memory newProposal = Proposal(id, msg.sender, title, msg.value, 0, msg.value, block.number, endBlock);
+        uint maximum = msg.value.mul(90).div(100); // voters can only deposit 90% of the proposer's amount at most -- prevention of whales.
+        Proposal memory newProposal = Proposal(id, msg.sender, title, msg.value, 0, msg.value, block.number, endBlock, maximum);
         Proposals[total_proposals] = newProposal;
         active_proposals[newProposal.end_block_number].push(id);
         myProposalIds[msg.sender].push(id);
@@ -168,8 +171,7 @@ contract Vote {
         Proposal storage proposal = Proposals[id];
         require(proposal.end_block_number > block.number, "Proposal is no longer active");
         require(msg.value >= 0.001 ether, "Deposit does not meet the minimum requirement");
-        uint maximum = votingStake[id][uint(Voter_Status.YAY)][proposal.proposer].mul(90).div(100); // voters can only deposit 90% of the proposer's amount at most -- prevention of whales.
-        require(msg.value <= maximum, "Deposit exceeded the maximum amount");
+        require(msg.value <= proposal.max_deposit, "Deposit exceeded the maximum amount");
 
         proposal.deposit_balance = proposal.deposit_balance.add(msg.value);
         totalStake[msg.sender] = totalStake[msg.sender].add(msg.value);
@@ -224,7 +226,7 @@ contract Vote {
      * @dev if ownerProposal is true, i is used as index of the myProposal Array. Otherwise, it is simply the proposal id.
      * @return the values that comform to the Proposal object.
      */
-    function get_proposals(uint i, bool ownerProposal) public view returns(uint256, address, string memory, uint256, uint256, uint256, uint256, uint256) {
+    function get_proposals(uint i, bool ownerProposal) public view returns(uint256, address, string memory, uint256, uint256, uint256, uint256, uint256, uint256) {
         Proposal memory prop;
         if (ownerProposal) {
             require(i < myProposal_count[msg.sender], "Invalid index");
@@ -235,7 +237,7 @@ contract Vote {
             require(i <= total_proposals, "Proposal does not exist");
             prop = Proposals[i];
         }
-        return (prop.id, prop.proposer, prop.title, prop.yay_count, prop.nay_count, prop.deposit_balance, prop.begin_block_number, prop.end_block_number);
+        return (prop.id, prop.proposer, prop.title, prop.yay_count, prop.nay_count, prop.deposit_balance, prop.begin_block_number, prop.end_block_number, prop.max_deposit);
     }
 
     /**

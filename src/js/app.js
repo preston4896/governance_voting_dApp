@@ -736,7 +736,8 @@ class ViewPropComponent extends React.Component {
 
             // component state
             yaySelected: false,
-            naySelected: false
+            naySelected: false,
+            ethDeposited: "0"
 
             // binding functions
         };this.inputHandler = this.inputHandler.bind(this);
@@ -754,15 +755,15 @@ class ViewPropComponent extends React.Component {
     // Handles the user's votes.
     voteHandler(event) {
         if (event.target.value === "Yay" && event.target.checked) {
-            console.log("Yay vote.");
             this.setState({ yaySelected: true });
             this.setState({ naySelected: false });
         } else if (event.target.value === "Nay" && event.target.checked) {
-            console.log("Nay vote.");
             this.setState({ yaySelected: false });
             this.setState({ naySelected: true });
         }
     }
+
+    async submitVoteHandler() {}
 
     render() {
         let body;
@@ -829,6 +830,22 @@ class ViewPropComponent extends React.Component {
                                         React.createElement("input", { type: "radio", value: "Nay", checked: this.state.naySelected, onChange: this.voteHandler }),
                                         " NAY "
                                     ),
+                                    " "
+                                )
+                            ),
+                            React.createElement(
+                                "div",
+                                { className: "row" },
+                                React.createElement(
+                                    "div",
+                                    { className: "col" },
+                                    " Deposit Amount:  "
+                                ),
+                                React.createElement(
+                                    "div",
+                                    { className: "col" },
+                                    " ",
+                                    React.createElement("input", { type: "number", value: this.state.ethDeposited, onClick: this.submitVoteHandler }),
                                     " "
                                 )
                             )
