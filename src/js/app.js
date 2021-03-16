@@ -674,7 +674,6 @@ function BackButton(props) {
     );
 }
 
-// TODO
 class ViewPropComponent extends React.Component {
 
     /**
@@ -687,7 +686,9 @@ class ViewPropComponent extends React.Component {
         const vote = this.props.contract;
         const accounts = await window.web3.eth.getAccounts();
         let resItem = new Array(8);
-        console.log("isOwner: ", callerIsVoter);
+        if (callerIsVoter) {
+            query--;
+        }
         try {
             resItem = await vote.methods.get_proposals(query, callerIsVoter).call({ from: accounts[0] });
         } catch (error) {
@@ -707,16 +708,39 @@ class ViewPropComponent extends React.Component {
     }
 
     /**
+     * Fetches the caller's vote on a proposal given by id.
+     * @param {Number} id
+     * @returns {Number} 0 - undecided vote, 1 - yay vote, 2- nay vote. 
+     */
+    async fetchVote(id) {
+        const vote = this.props.contract;
+        const accounts = await window.web3.eth.getAccounts();
+        const sender = accounts[0];
+
+        const callerVote = await vote.methods.get_votes(id).call({ from: sender });
+        return callerVote;
+    }
+
+    /**
      * Initialize the Proposal Component
      * @param {object} props - props.contract: contract ABI, props.isAny: True, if user is looking for any proposal. False otherwise, user is looking for their own proposal.
      */
     constructor(props) {
         super(props);
         this.state = {
+            // proposal state
             proposal: undefined,
-            input: 0
-        };
-        this.inputHandler = this.inputHandler.bind(this);
+            input: "",
+            voted: "",
+            currentBlockNumber: "",
+
+            // component state
+            yaySelected: false,
+            naySelected: false
+
+            // binding functions
+        };this.inputHandler = this.inputHandler.bind(this);
+        this.voteHandler = this.voteHandler.bind(this);
     }
 
     // updates the input states to trigger didComponentUpdate() to reload proposal.
@@ -725,6 +749,19 @@ class ViewPropComponent extends React.Component {
             this.setState({ proposal: undefined });
         }
         this.setState({ input: event.target.value });
+    }
+
+    // Handles the user's votes.
+    voteHandler(event) {
+        if (event.target.value === "Yay" && event.target.checked) {
+            console.log("Yay vote.");
+            this.setState({ yaySelected: true });
+            this.setState({ naySelected: false });
+        } else if (event.target.value === "Nay" && event.target.checked) {
+            console.log("Nay vote.");
+            this.setState({ yaySelected: false });
+            this.setState({ naySelected: true });
+        }
     }
 
     render() {
@@ -743,11 +780,143 @@ class ViewPropComponent extends React.Component {
                 )
             );
         } else {
-            let voteContent = React.createElement(
-                "p",
-                null,
-                " Vote Content Component. "
+            let voteContent;
+            let propEndedContent = React.createElement(
+                "div",
+                { className: "content" },
+                "  "
             );
+            const propIsStillActive = this.state.proposal.end_block_number >= this.state.currentBlockNumber;
+
+            // not voted
+            if (this.state.voted === "0") {
+                if (propIsStillActive) {
+                    voteContent = React.createElement(
+                        "div",
+                        { className: "container" },
+                        React.createElement(
+                            "div",
+                            { className: "col text-center" },
+                            React.createElement(
+                                "p",
+                                null,
+                                " Cast Your Vote: "
+                            ),
+                            React.createElement(
+                                "div",
+                                { className: "row" },
+                                React.createElement(
+                                    "div",
+                                    { className: "col" },
+                                    " ",
+                                    React.createElement(
+                                        "label",
+                                        null,
+                                        " ",
+                                        React.createElement("input", { type: "radio", value: "Yay", checked: this.state.yaySelected, onChange: this.voteHandler }),
+                                        " YAY "
+                                    ),
+                                    " "
+                                ),
+                                React.createElement(
+                                    "div",
+                                    { className: "col" },
+                                    " ",
+                                    React.createElement(
+                                        "label",
+                                        null,
+                                        " ",
+                                        React.createElement("input", { type: "radio", value: "Nay", checked: this.state.naySelected, onChange: this.voteHandler }),
+                                        " NAY "
+                                    ),
+                                    " "
+                                )
+                            )
+                        )
+                    );
+                } else {
+                    voteContent = React.createElement(
+                        "p",
+                        null,
+                        " You can no longer vote for this proposal. "
+                    );
+                }
+            }
+            // voted
+            else if (this.state.voted === "1") {
+                    voteContent = React.createElement(
+                        "div",
+                        null,
+                        " You voted: ",
+                        React.createElement(
+                            "p",
+                            { style: { color: "green" } },
+                            " YAY "
+                        ),
+                        " "
+                    );
+                } else if (this.state.voted === "2") {
+                    voteContent = React.createElement(
+                        "div",
+                        null,
+                        " You voted: ",
+                        React.createElement(
+                            "p",
+                            { style: { color: "red" } },
+                            " NAY "
+                        ),
+                        " "
+                    );
+                }
+
+            // proposal is no longer active.
+            if (!propIsStillActive) {
+                let consensus;
+                if (this.state.proposal.yay_count > this.state.proposal.nay_count) {
+                    consensus = React.createElement(
+                        "h3",
+                        null,
+                        " The proposal ended with the ",
+                        React.createElement(
+                            "p",
+                            { style: { fontWeight: "bold", color: "green" } },
+                            " YAYs "
+                        ),
+                        " as the majority. "
+                    );
+                } else if (this.state.proposal.yay_count < this.state.proposal.nay_count) {
+                    consensus = React.createElement(
+                        "h3",
+                        null,
+                        " The proposal ended with the ",
+                        React.createElement(
+                            "p",
+                            { style: { fontWeight: "bold", color: "red" } },
+                            " NAYs "
+                        ),
+                        " as the majority. "
+                    );
+                } else {
+                    consensus = React.createElement(
+                        "h2",
+                        null,
+                        " The proposal ended with a ",
+                        React.createElement(
+                            "p",
+                            { style: { fontWeight: "bold", color: "yellow" } },
+                            " TIE "
+                        ),
+                        ". "
+                    );
+                }
+
+                propEndedContent = React.createElement(
+                    "div",
+                    { className: "container" },
+                    consensus
+                );
+            }
+
             let yayPercent = this.state.proposal.yay_count * 100 / this.state.proposal.total_deposit;
             let nayPercent = this.state.proposal.nay_count * 100 / this.state.proposal.total_deposit;
             propBody = React.createElement(
@@ -771,18 +940,7 @@ class ViewPropComponent extends React.Component {
                             { className: "col" },
                             " ",
                             React.createElement(
-                                "label",
-                                null,
-                                " Title:  "
-                            ),
-                            " "
-                        ),
-                        React.createElement(
-                            "div",
-                            { className: "col" },
-                            " ",
-                            React.createElement(
-                                "p",
+                                "h1",
                                 null,
                                 " ",
                                 this.state.proposal.title,
@@ -905,7 +1063,6 @@ class ViewPropComponent extends React.Component {
                     React.createElement(
                         "div",
                         { className: "row" },
-                        "\\",
                         React.createElement(
                             "div",
                             { className: "col" },
@@ -960,7 +1117,8 @@ class ViewPropComponent extends React.Component {
                         )
                     )
                 ),
-                voteContent
+                voteContent,
+                propEndedContent
             );
         }
 
@@ -1009,7 +1167,11 @@ class ViewPropComponent extends React.Component {
         let isOwner = !this.props.isAny;
         if (prevState.input !== this.state.input && this.state.input !== "" && this.state.input !== "0") {
             const proposal = await this.loadProposal(this.state.input, isOwner);
+            const voted = await this.fetchVote(this.state.input);
+            const blockNum = await window.web3.eth.getBlockNumber();
             this.setState({ proposal: proposal });
+            this.setState({ voted: voted });
+            this.setState({ currentBlockNumber: blockNum });
         }
     }
 }
