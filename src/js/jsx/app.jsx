@@ -25,16 +25,17 @@ async function loadWeb3() {
 };
 
 /**
- * load user's account and contract
+ * load the contract
  */
-async function loadData() {
+async function loadContract() {
+    this.setState({loading: true});
     this.setState({contractDeployed: false});
 
     const web3 = window.web3;
+
+    // account info
     const accounts = await web3.eth.getAccounts();
-
     this.setState({account: accounts[0]});
-
     let balanceInWei = await web3.eth.getBalance(this.state.account);
     let balance = web3.utils.fromWei(balanceInWei, "ether");
     this.setState({accountBalance: balance});
@@ -57,26 +58,52 @@ async function loadData() {
         window.alert("The contract is not deployed to this network.");
      })
 
-    // load user and app info from the contract. - getter functions should not cost any gas.
+    const vote = this.state.voteContract;
 
     // block number
-    const vote = this.state.voteContract;
-    let blockNumber = await vote.methods.lastBlockNumber().call();
-    this.setState({lastSyncedBlock: blockNumber});
+    let blockNum = await vote.methods.lastBlockNumber().call();
+    this.setState({lastSyncedBlock: blockNum});
+
+    // deposit info
+    const stakedInWei = await vote.methods.get_staked().call({from:this.state.account});
+    const staked = web3.utils.fromWei(stakedInWei, "ether");
+    this.setState({amountDeposited: staked});
+
+    // withdraw info
+    const withdrawableInWei = await vote.methods.get_withdraw().call({from:this.state.account});
+    const withdrawable = web3.utils.fromWei(withdrawableInWei, "ether");
+    this.setState({amountWithdrawable: withdrawable});
 
     this.setState({loading: false}); // App finished loading.
 };
 
 class App extends React.Component {
 
-    // TODO
     /**
      * Gets the last block number prossessed by the contract, user staked and withdrawable.
      */
-    async reloadHome() {
+    async loadData() {
         const vote = this.state.voteContract;
+        const web3 = window.web3;
+        
+        // block number
         let blockNum = await vote.methods.lastBlockNumber().call();
         this.setState({lastSyncedBlock: blockNum});
+
+        // account info
+        let balanceInWei = await web3.eth.getBalance(this.state.account);
+        let balance = web3.utils.fromWei(balanceInWei, "ether");
+        this.setState({accountBalance: balance});
+
+        // deposit info
+        const stakedInWei = await vote.methods.get_staked().call({from:this.state.account});
+        const staked = web3.utils.fromWei(stakedInWei, "ether");
+        this.setState({amountDeposited: staked});
+
+        // withdraw info
+        const withdrawableInWei = await vote.methods.get_withdraw().call({from:this.state.account});
+        const withdrawable = web3.utils.fromWei(withdrawableInWei, "ether");
+        this.setState({amountWithdrawable: withdrawable});
     }
 
     constructor(props) {
@@ -104,8 +131,8 @@ class App extends React.Component {
 
         // bind fucntions
         loadWeb3 = loadWeb3.bind(this);
-        loadData = loadData.bind(this);
-        this.reloadHome = this.reloadHome.bind(this);
+        loadContract = loadContract.bind(this);
+        this.loadData = this.loadData.bind(this);
     }
     
     render() {
@@ -124,7 +151,7 @@ class App extends React.Component {
                         <div className = "col"> <p> Withdrawable amount: {this.state.amountWithdrawable} ETH </p>  </div>
                     </div>
                     <p> A minimum of 0.001 ETH is required to create a new proposal. </p>
-                    <AppBody contract = {this.state.voteContract} refresh = {this.reloadHome}/>
+                    <AppBody contract = {this.state.voteContract} refresh = {this.loadData}/>
                 </div>;
                 footer = 
                 <footer> 
@@ -154,17 +181,15 @@ class App extends React.Component {
 
     async componentDidMount() {
         await loadWeb3();
-        await loadData();
+        await loadContract();
         // listen for network change
         await window.ethereum.on('chainChanged', () => {
-            this.setState({loading: true});
-            loadData();
+            loadContract();
         })
 
         // listen for account change
         await window.ethereum.on('accountsChanged', () => {
-            this.setState({loading: true});
-            loadData();
+            loadContract();
         })
     }
 }
@@ -203,7 +228,7 @@ class AppBody extends React.Component {
         this.state = {
             // App Stats
             componentState: "home",
-            loading: false,
+            bodyLoading: false,
             transactionFailed: false,
 
             // Proposal Stats
@@ -232,29 +257,29 @@ class AppBody extends React.Component {
 
     // prop button handler
     async propHandler() {
-        this.setState({loading: true});
+        this.setState({bodyLoading: true});
         let count = await this.loadPropCount(false);
         this.setState({propCount: count});
         this.setState({componentState: "prop"});
         this.setState({anyProp: true});
-        this.setState({loading: false});
+        this.setState({bodyLoading: false});
         await this.props.refresh();
     }
     async propOwnHandler() {
-        this.setState({loading: true});
+        this.setState({bodyLoading: true});
         let count = await this.loadPropCount(true);
         this.setState({propCount: count});
         this.setState({componentState: "prop"});
         this.setState({anyProp: false});
-        this.setState({loading: false});
+        this.setState({bodyLoading: false});
         await this.props.refresh();
     }
 
     // create button handler
     async createHandler() {
-        this.setState({loading: true});
+        this.setState({bodyLoading: true});
         this.setState({componentState: "create"});
-        this.setState({loading: false});
+        this.setState({bodyLoading: false});
         await this.props.refresh();
     }
 
@@ -283,7 +308,7 @@ class AppBody extends React.Component {
     async submitHandler() {
         const inputsAreValid = (this.state.newTitle !== "") && (this.state.newOffset !== "") && (parseFloat(this.state.amount) >= 0.001);
         if (inputsAreValid) {
-            this.setState({loading: true});
+            this.setState({bodyLoading: true});
 
             const accounts = await window.web3.eth.getAccounts();
             const sender = accounts[0];
@@ -296,7 +321,7 @@ class AppBody extends React.Component {
             try {
                 await vote.methods.create(this.state.newTitle, this.state.newOffset).send({from: sender, value: weiAmount, gas: estimateGasLimit})
                 .on("transactionHash", (hash) => {
-                    this.setState({loading: false});
+                    this.setState({bodyLoading: false});
                     this.setState({newTitle: ""});
                     this.setState({newOffset: ""});
                     this.setState({amount: "0.001"});
@@ -304,12 +329,12 @@ class AppBody extends React.Component {
                     window.alert("Your Proposal Has Been Successfully Created.");
                 })
                 .on("error", (error) => {
-                    this.setState({loading: false});
+                    this.setState({bodyLoading: false});
                     this.setState({transactionFailed: true});
                     console.error("Transaction failed (Preston)", error);
                 });
             } catch (error) {
-                this.setState({loading: false});
+                this.setState({bodyLoading: false});
                 this.setState({transactionFailed: true});
                 console.error("Rejection hurts (Preston)", error);
             }
@@ -321,7 +346,7 @@ class AppBody extends React.Component {
 
     render() {
         let content;
-        if (this.state.loading) {
+        if (this.state.bodyLoading) {
             content = <p> Loading... </p>
         }
         else {
