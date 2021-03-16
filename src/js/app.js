@@ -54,7 +54,7 @@ class App extends React.Component {
     }
 
     /**
-     * Gets the last block number prossessed by the contract, user staked and withdrawable.
+     * Gets the last block number prossessed by the contract, account info, user staked and withdrawable.
      */
     async loadData() {
         const vote = this.state.voteContract;
@@ -246,15 +246,15 @@ class AppBody extends React.Component {
 
     /**
      * Load the total proposal count or the number of proposal created.
-     * @param {Boolean} callerIsOwner
+     * @param {Boolean} callerIsVoter
      * @returns {Number}
      */
-    async loadPropCount(callerIsOwner) {
+    async loadPropCount(callerIsVoter) {
         const vote = this.props.contract;
         const accounts = await window.web3.eth.getAccounts();
         const sender = accounts[0];
         let res;
-        if (callerIsOwner) {
+        if (callerIsVoter) {
             res = await vote.methods.myProposal_count(sender).call();
         } else {
             res = await vote.methods.total_proposals().call();
@@ -279,7 +279,7 @@ class AppBody extends React.Component {
             transactionFailed: false,
 
             // Proposal Stats
-            anyProp: true, // true if the user is looking for their own proposals.
+            anyProp: true, // false if the user is looking for their own proposals.
             propCount: 0,
 
             // New Proposal Info
@@ -496,7 +496,7 @@ class AppBody extends React.Component {
                             React.createElement(
                                 "p",
                                 null,
-                                " You have created ",
+                                " You have created or voted on ",
                                 this.state.propCount,
                                 " proposal(s) so far. "
                             )
@@ -529,7 +529,7 @@ class AppBody extends React.Component {
                                     "label",
                                     null,
                                     "Title:",
-                                    React.createElement("input", { required: true, type: "text", style: { margin: "3px" }, value: this.state.newTitle, onChange: this.titleHandler })
+                                    React.createElement("input", { type: "text", style: { margin: "3px" }, value: this.state.newTitle, onChange: this.titleHandler })
                                 )
                             ),
                             React.createElement(
@@ -539,7 +539,7 @@ class AppBody extends React.Component {
                                     "label",
                                     null,
                                     "End Block Number Offset:",
-                                    React.createElement("input", { required: true, type: "number", min: "1", style: { margin: "3px" }, value: this.state.newOffset, onChange: this.offsetHandler })
+                                    React.createElement("input", { type: "number", min: "1", style: { margin: "3px" }, value: this.state.newOffset, onChange: this.offsetHandler })
                                 )
                             ),
                             React.createElement(
@@ -549,7 +549,7 @@ class AppBody extends React.Component {
                                     "label",
                                     null,
                                     "Deposit Amount:",
-                                    React.createElement("input", { required: true, type: "number", min: "0.001", style: { margin: "3px" }, value: this.state.amount, onChange: this.depositHandler })
+                                    React.createElement("input", { type: "number", min: "0.001", style: { margin: "3px" }, value: this.state.amount, onChange: this.depositHandler })
                                 )
                             ),
                             React.createElement(
@@ -610,14 +610,14 @@ class ViewPropComponent extends React.Component {
     /**
      * Load a proposal by the given query (ID or ownerIndex).
      * @param {Number} query - The proposalID or the index to query the owner's proposal.
-     * @param {Boolean} callerIsOwner - True: query IDs; False: query indices.
+     * @param {Boolean} callerIsVoter - True: query IDs; False: query indices.
      * @returns {Object} The Proposal Object. { uint256 id, address proposer, string title, uint256 yay_count, uint256 nay_count, uint256 total_deposit, uint256 begin_block_number, uint256 end_block_number }
      */
-    async loadProposal(query, callerIsOwner) {
+    async loadProposal(query, callerIsVoter) {
         const vote = this.props.contract;
         let resItem = new Array(8);
         try {
-            resItem = await votes.methods.get_proposals(query, callerIsOwner).call(8);
+            resItem = await votes.methods.get_proposals(query, callerIsVoter).call(8);
         } catch (error) {
             window.alert("Unable to load proposal.");
         }

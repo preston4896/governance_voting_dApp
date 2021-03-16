@@ -48,7 +48,7 @@ contract Vote {
     mapping (uint256 => uint256[]) internal active_proposals; // block end number mapped to array of proposal ids.
     uint256[] internal inactiveIds; // track inactive proposals to claim eth.
     uint256 public endProp_count; // counts the number of inactive proposals.
-    mapping (address => uint256[]) internal myProposalIds; // users to locate their created proposal by id.
+    mapping (address => uint256[]) internal myProposalIds; // users to locate their created/voted proposal by id.
     mapping (address => uint256) public myProposal_count; // counts the number of proposals the user created.
 
     // Keep track of processed block number
@@ -184,6 +184,9 @@ contract Vote {
             votingStake[id][uint(Voter_Status.NAY)][msg.sender] = msg.value;
             proposal.nay_count = proposal.nay_count.add(msg.value);
         }
+
+        myProposalIds[msg.sender].push(id);
+        myProposal_count[msg.sender] = myProposal_count[msg.sender].add(1);
 
         emit Transfer(msg.sender, address(this), msg.value);
         emit Voted(msg.sender, id, votesYay);
