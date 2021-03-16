@@ -1,81 +1,78 @@
 "strict mode";
 
-// web3 global functions
-
-/**
- * checks for web3-compatible wallet
- */
-
-async function loadWeb3() {
-    // web3 browser
-    if (window.ethereum) {
-        window.web3 = new Web3(window.ethereum);
-        await window.ethereum.enable();
-    }
-    // legacy web3 API
-    else if (window.web3) {
-            window.web3 = new Web3(window.web3.currentProvider);
-        } else {
-            let message = "Browser does not support Web3. Consider installing MetaMask.";
-            let alert = confirm(message);
-            if (alert) {
-                window.open("https://metamask.io/", "_blank", "noopener, noreferrer");
-            }
-        }
-};
-
-/**
- * load the contract
- */
-async function loadContract() {
-    this.setState({ loading: true });
-    this.setState({ contractDeployed: false });
-
-    const web3 = window.web3;
-
-    // account info
-    const accounts = await web3.eth.getAccounts();
-    this.setState({ account: accounts[0] });
-    let balanceInWei = await web3.eth.getBalance(this.state.account);
-    let balance = web3.utils.fromWei(balanceInWei, "ether");
-    this.setState({ accountBalance: balance });
-
-    const networkId = await web3.eth.net.getId();
-    this.setState({ network: networkId });
-
-    // load the contract
-    let abi;
-    let address;
-    await fetch("./src/builds/Vote.json").then(body => body.json()).then(data => {
-        abi = data.abi;
-        address = data.networks[networkId].address;
-        const vote = new web3.eth.Contract(abi, address);
-        this.setState({ voteContract: vote });
-        this.setState({ contractDeployed: true });
-    }).catch(error => {
-        window.alert("The contract is not deployed to this network.");
-    });
-
-    const vote = this.state.voteContract;
-
-    // block number
-    let blockNum = await vote.methods.lastBlockNumber().call();
-    this.setState({ lastSyncedBlock: blockNum });
-
-    // deposit info
-    const stakedInWei = await vote.methods.get_staked().call({ from: this.state.account });
-    const staked = web3.utils.fromWei(stakedInWei, "ether");
-    this.setState({ amountDeposited: staked });
-
-    // withdraw info
-    const withdrawableInWei = await vote.methods.get_withdraw().call({ from: this.state.account });
-    const withdrawable = web3.utils.fromWei(withdrawableInWei, "ether");
-    this.setState({ amountWithdrawable: withdrawable });
-
-    this.setState({ loading: false }); // App finished loading.
-};
-
 class App extends React.Component {
+
+    /**
+     * checks for web3-compatible wallet
+     */
+    async loadWeb3() {
+        // web3 browser
+        if (window.ethereum) {
+            window.web3 = new Web3(window.ethereum);
+            await window.ethereum.enable();
+        }
+        // legacy web3 API
+        else if (window.web3) {
+                window.web3 = new Web3(window.web3.currentProvider);
+            } else {
+                let message = "Browser does not support Web3. Consider installing MetaMask.";
+                let alert = confirm(message);
+                if (alert) {
+                    window.open("https://metamask.io/", "_blank", "noopener, noreferrer");
+                }
+            }
+    }
+
+    /**
+     * load the contract
+     */
+    async loadContract() {
+        this.setState({ loading: true });
+        this.setState({ contractDeployed: false });
+
+        const web3 = window.web3;
+
+        // account info
+        const accounts = await web3.eth.getAccounts();
+        this.setState({ account: accounts[0] });
+        let balanceInWei = await web3.eth.getBalance(this.state.account);
+        let balance = web3.utils.fromWei(balanceInWei, "ether");
+        this.setState({ accountBalance: balance });
+
+        const networkId = await web3.eth.net.getId();
+        this.setState({ network: networkId });
+
+        // load the contract
+        let abi;
+        let address;
+        await fetch("./src/builds/Vote.json").then(body => body.json()).then(data => {
+            abi = data.abi;
+            address = data.networks[networkId].address;
+            const vote = new web3.eth.Contract(abi, address);
+            this.setState({ voteContract: vote });
+            this.setState({ contractDeployed: true });
+        }).catch(error => {
+            window.alert("The contract is not deployed to this network.");
+        });
+
+        const vote = this.state.voteContract;
+
+        // block number
+        let blockNum = await vote.methods.lastBlockNumber().call();
+        this.setState({ lastSyncedBlock: blockNum });
+
+        // deposit info
+        const stakedInWei = await vote.methods.get_staked().call({ from: this.state.account });
+        const staked = web3.utils.fromWei(stakedInWei, "ether");
+        this.setState({ amountDeposited: staked });
+
+        // withdraw info
+        const withdrawableInWei = await vote.methods.get_withdraw().call({ from: this.state.account });
+        const withdrawable = web3.utils.fromWei(withdrawableInWei, "ether");
+        this.setState({ amountWithdrawable: withdrawable });
+
+        this.setState({ loading: false }); // App finished loading.
+    }
 
     /**
      * Gets the last block number prossessed by the contract, user staked and withdrawable.
@@ -128,8 +125,8 @@ class App extends React.Component {
 
 
             // bind fucntions
-        };loadWeb3 = loadWeb3.bind(this);
-        loadContract = loadContract.bind(this);
+        };this.loadWeb3 = this.loadWeb3.bind(this);
+        this.loadContract = this.loadContract.bind(this);
         this.loadData = this.loadData.bind(this);
     }
 
@@ -250,16 +247,16 @@ class App extends React.Component {
     }
 
     async componentDidMount() {
-        await loadWeb3();
-        await loadContract();
+        await this.loadWeb3();
+        await this.loadContract();
         // listen for network change
         await window.ethereum.on('chainChanged', () => {
-            loadContract();
+            this.loadContract();
         });
 
         // listen for account change
         await window.ethereum.on('accountsChanged', () => {
-            loadContract();
+            this.loadContract();
         });
     }
 }
@@ -373,6 +370,7 @@ class AppBody extends React.Component {
         this.setState({ amount: event.target.value });
     }
 
+    // submit then initiate transaction.
     async submitHandler() {
         const inputsAreValid = this.state.newTitle !== "" && this.state.newOffset !== "" && parseFloat(this.state.amount) >= 0.001;
         if (inputsAreValid) {
@@ -408,6 +406,9 @@ class AppBody extends React.Component {
             this.setState({ componentState: "create" });
         }
     }
+
+    // TODO: Update ETH and Withdraw ETH.
+
 
     render() {
         let content;
@@ -473,8 +474,8 @@ class AppBody extends React.Component {
                             " ",
                             React.createElement(
                                 "button",
-                                { title: "Update Your Total Withdrawable ETH Amount." },
-                                " Update ETH "
+                                { title: "Redeem Your Total Withdrawable ETH Amount." },
+                                " Redeem ETH "
                             ),
                             " "
                         ),
@@ -484,7 +485,7 @@ class AppBody extends React.Component {
                             " ",
                             React.createElement(
                                 "button",
-                                { title: "Withdraw all ETH to your wallet. Make sure to update withdrawable ETH first." },
+                                { title: "Withdraw all ETH to your wallet. Make sure to redeem withdrawable ETH first." },
                                 " Withdraw ETH "
                             ),
                             " "
@@ -712,7 +713,7 @@ class ViewPropComponent extends React.Component {
                     React.createElement(
                         "div",
                         { className: "col" },
-                        React.createElement("input", { placeholder: "Enter Proposal ID" }),
+                        React.createElement("input", { placeholder: "Enter Index Number" }),
                         React.createElement(
                             "button",
                             null,
