@@ -299,11 +299,10 @@ class AppBody extends React.Component {
             const vote = this.props.contract;
 
             const weiAmount = web3.utils.toWei(this.state.amount.toString(), "ether");
-            const estimateGasLimit = await vote.methods.create(this.state.newTitle, this.state.newOffset).estimateGas({from: sender, value: weiAmount});
 
             // submit proposal
             try {
-                await vote.methods.create(this.state.newTitle, this.state.newOffset).send({from: sender, value: weiAmount, gas: estimateGasLimit})
+                await vote.methods.create(this.state.newTitle, this.state.newOffset).send({from: sender, value: weiAmount})
                 .on("transactionHash", (hash) => {
                     this.setState({newTitle: ""});
                     this.setState({newOffset: ""});
@@ -343,11 +342,9 @@ class AppBody extends React.Component {
             const accounts = await window.web3.eth.getAccounts();
             const sender = accounts[0];
 
-            const estimateGasLimit = await vote.methods.updateEthEarned().estimateGas({from: sender});
-
             // updating withdrawable
             try {
-                await vote.methods.updateEthEarned().send({from: sender, gas: estimateGasLimit})
+                await vote.methods.updateEthEarned().send({from: sender})
                 .on("transactionHash", (hash) => {
                     window.alert("Your transaction has been confirmed.");
                 })
@@ -382,10 +379,9 @@ class AppBody extends React.Component {
             window.alert("You do not have any withdrawable ETH.");
         }
         else {
-            const estimateGasLimit = await vote.methods.withdrawEth().estimateGas({from: sender});
             // withdraw accounts.
             try {
-                await vote.methods.withdrawEth().send({from: sender, gas: estimateGasLimit})
+                await vote.methods.withdrawEth().send({from: sender})
                 .on("transactionHash", (hash) => {
                     window.alert("Funds have been withdrawned.");
                 })
@@ -643,10 +639,9 @@ class ViewPropComponent extends React.Component {
                 window.alert("Your balance is insufficient.");
             }
             else {
-                const estimateGasLimit = await vote.methods.vote(this.state.proposal.id, votesYay).estimateGas({from: sender});
                 // vote
                 try {
-                    await vote.methods.vote(this.state.proposal.id, votesYay).send({from: sender, gas: estimateGasLimit, value: inputInWei})
+                    await vote.methods.vote(this.state.proposal.id, votesYay).send({from: sender, value: inputInWei})
                     .on("transactionHash", (hash) => {
                         window.alert("Vote casted successfully.");
                         this.props.home();
