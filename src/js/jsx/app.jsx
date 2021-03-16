@@ -210,7 +210,7 @@ class AppBody extends React.Component {
             bodyLoading: false,
             transactionFailed: false,
 
-            // Proposal Stats
+            // Proposal Stats - can only used for search proposals (option 1 or 2)
             anyProp: true, // false if the user is looking for their own proposals.
             propCount: 0,
             
@@ -302,7 +302,6 @@ class AppBody extends React.Component {
             try {
                 await vote.methods.create(this.state.newTitle, this.state.newOffset).send({from: sender, value: weiAmount, gas: estimateGasLimit})
                 .on("transactionHash", (hash) => {
-                    this.setState({bodyLoading: false});
                     this.setState({newTitle: ""});
                     this.setState({newOffset: ""});
                     this.setState({amount: "0.001"});
@@ -310,25 +309,57 @@ class AppBody extends React.Component {
                     window.alert("Your Proposal Has Been Successfully Created.");
                 })
                 .on("error", (error) => {
-                    this.setState({bodyLoading: false});
                     this.setState({transactionFailed: true});
                     console.error("Transaction failed (Preston)", error);
                 });
             } catch (error) {
-                this.setState({bodyLoading: false});
                 this.setState({transactionFailed: true});
                 console.error("Rejection hurts (Preston)", error);
             }
-        }
-        else {
-            this.setState({componentState: "create"});
+            this.setState({bodyLoading: false});
         }
     }
 
-    // TODO: Update ETH and Withdraw ETH.
     async redeemHandler() {
-        
+        this.setState({bodyLoading: true});
+        const count = await this.loadPropCount(true);
+        let message = "You have not created or voted on any proposals yet. It is unlikely that you would have any redeemable ETH. Proceeding this option will incur on a transaction (gas) fee. Continue?";
+        let confirm;
+        if (count == 0) {
+            confirm = window.confirm(message);
+        }
+        if (confirm === false) {
+            this.setState({bodyLoading: false});
+            this.setState({componentState: "home"});
+        } 
+        if (count > 0 || confirm) {
+            const vote = this.props.contract;
+            
+            const accounts = await window.web3.eth.getAccounts();
+            const sender = accounts[0];
+
+            const estimateGasLimit = await vote.methods.updateEthEarned().estimateGas({from: sender});
+
+            // updating withdrawable
+            try {
+                await vote.methods.updateEthEarned().send({from: sender, gas: estimateGasLimit})
+                .on("transactionHash", (hash) => {
+                    window.alert("Your Transaction Has Been Confirmed.");
+                })
+                .on("error", (error) => {
+                    this.setState({transactionFailed: true});
+                    console.error("Transaction failed (Preston)", error);
+                });
+            } catch (error) {
+                this.setState({transactionFailed: true});
+                console.error("Rejection hurts (Preston)", error);
+            }
+            this.setState({bodyLoading: false});
+            this.setState({componentState: "home"});
+        }
     }
+
+    // TODO: Withdraw ETH.
 
     render() {
         let content;
