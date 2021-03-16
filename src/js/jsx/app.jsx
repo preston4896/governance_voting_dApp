@@ -33,13 +33,6 @@ class App extends React.Component {
 
         const web3 = window.web3;
 
-        // account info
-        const accounts = await web3.eth.getAccounts();
-        this.setState({account: accounts[0]});
-        let balanceInWei = await web3.eth.getBalance(this.state.account);
-        let balance = web3.utils.fromWei(balanceInWei, "ether");
-        this.setState({accountBalance: balance});
-
         const networkId = await web3.eth.net.getId();
         this.setState({network: networkId});
 
@@ -58,27 +51,13 @@ class App extends React.Component {
             window.alert("The contract is not deployed to this network.");
         })
 
-        const vote = this.state.voteContract;
-
-        // block number
-        let blockNum = await vote.methods.lastBlockNumber().call();
-        this.setState({lastSyncedBlock: blockNum});
-
-        // deposit info
-        const stakedInWei = await vote.methods.get_staked().call({from:this.state.account});
-        const staked = web3.utils.fromWei(stakedInWei, "ether");
-        this.setState({amountDeposited: staked});
-
-        // withdraw info
-        const withdrawableInWei = await vote.methods.get_withdraw().call({from:this.state.account});
-        const withdrawable = web3.utils.fromWei(withdrawableInWei, "ether");
-        this.setState({amountWithdrawable: withdrawable});
+        await this.loadData();
 
         this.setState({loading: false}); // App finished loading.
     };
 
     /**
-     * Gets the last block number prossessed by the contract, user staked and withdrawable.
+     * Gets the last block number prossessed by the contract, account info, user staked and withdrawable.
      */
     async loadData() {
         const vote = this.state.voteContract;
@@ -89,6 +68,8 @@ class App extends React.Component {
         this.setState({lastSyncedBlock: blockNum});
 
         // account info
+        const accounts = await web3.eth.getAccounts();
+        this.setState({account: accounts[0]});
         let balanceInWei = await web3.eth.getBalance(this.state.account);
         let balance = web3.utils.fromWei(balanceInWei, "ether");
         this.setState({accountBalance: balance});
@@ -187,7 +168,7 @@ class App extends React.Component {
 
         // listen for account change
         await window.ethereum.on('accountsChanged', () => {
-            this.loadContract();
+            this.loadData();
         })
     }
 }
@@ -251,6 +232,7 @@ class AppBody extends React.Component {
         this.offsetHandler = this.offsetHandler.bind(this);
         this.depositHandler = this.depositHandler.bind(this);
         this.submitHandler = this.submitHandler.bind(this);
+        this.redeemHandler = this.redeemHandler.bind(this);
     }
 
     // prop button handler
@@ -344,7 +326,9 @@ class AppBody extends React.Component {
     }
 
     // TODO: Update ETH and Withdraw ETH.
-    
+    async redeemHandler() {
+        
+    }
 
     render() {
         let content;
@@ -366,7 +350,7 @@ class AppBody extends React.Component {
                         <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button title = "Locate A Proposal By Their IDs." onClick = {this.propHandler}> Search or Vote On Proposal(s) </button> </div> 
                         <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button title = "View The Proposals That You Created." onClick = {this.propOwnHandler}> Find My Proposals </button> </div>
                         <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button title = "A minimum of 0.001 ETH is required." onClick = {this.createHandler}> Create A Proposal and Stake ETH </button> </div>
-                        <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button title = "Redeem Your Total Withdrawable ETH Amount."> Redeem ETH </button> </div>
+                        <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button title = "Redeem Your Total Withdrawable ETH Amount." onClick = {this.redeemHandler}> Redeem ETH </button> </div>
                         <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button title = "Withdraw all ETH to your wallet. Make sure to redeem withdrawable ETH first."> Withdraw ETH </button> </div>
                     </div>
                 }
