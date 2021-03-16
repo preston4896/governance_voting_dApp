@@ -54,6 +54,11 @@ contract("Vote", (accounts) => {
         let total_proposals = await vote.total_proposals();
         assert.equal(total_proposals, 1, "1 proposal only.");
 
+        // test get staked.
+        let expected_staked = deposit_amount;
+        let actual_staked = await vote.get_staked();
+        assert.equal(actual_staked, expected_staked);
+
         // creates another proposal
         await vote.create(title, 2, {from: accounts[1], value: deposit_amount});
 
