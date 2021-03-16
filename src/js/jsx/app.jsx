@@ -553,6 +553,9 @@ class ViewPropComponent extends React.Component {
 
     // updates the input states to trigger didComponentUpdate() to reload proposal.
     async inputHandler(event) {
+        if (event.target.value === "" || event.target.value === 0) {
+            this.setState({proposal: undefined});
+        }
         this.setState({input: event.target.value});
     }
 
@@ -642,7 +645,7 @@ class ViewPropComponent extends React.Component {
     async componentDidUpdate(prevProps, prevState) {
         // input changed.
         let isOwner = !this.props.isAny;
-        if ((prevState.input !== this.state.input && this.state.input !== "" && this.state.input !== 0)) {
+        if ((prevState.input !== this.state.input && this.state.input !== "" && this.state.input !== "0")) {
             const proposal = await this.loadProposal(this.state.input, isOwner);
             this.setState({proposal: proposal});
         }
