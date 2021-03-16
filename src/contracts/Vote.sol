@@ -234,6 +234,13 @@ contract Vote {
     }
 
     /**
+     * @dev Function to get the user's vote on a proposal given by ID.
+     */
+    function get_votes(uint256 id) public view returns(uint) {
+        return uint(addressToVote[id][msg.sender]);
+    }
+
+    /**
      * @dev Function for users to withdraw all of their eth. It is recommended to invoke updateEthEarned() first.
      */
     function withdrawEth() public payable checkWinner() returns(bool success) {
