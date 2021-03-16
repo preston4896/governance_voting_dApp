@@ -170,7 +170,6 @@ contract Vote {
         require(addressToVote[id][msg.sender] == Voter_Status.UNDECIDED, "Can not vote twice");
         Proposal storage proposal = Proposals[id];
         require(proposal.end_block_number > block.number, "Proposal is no longer active");
-        require(msg.value >= 0.001 ether, "Deposit does not meet the minimum requirement");
         require(msg.value <= proposal.max_deposit, "Deposit exceeded the maximum amount");
 
         proposal.deposit_balance = proposal.deposit_balance.add(msg.value);

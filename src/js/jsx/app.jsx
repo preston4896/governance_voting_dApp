@@ -234,6 +234,8 @@ class AppBody extends React.Component {
         this.submitHandler = this.submitHandler.bind(this);
         this.redeemHandler = this.redeemHandler.bind(this);
         this.withdrawHandler = this.withdrawHandler.bind(this);
+        this.throwTransactionFailed = this.throwTransactionFailed.bind(this);
+        this.home = this.home.bind(this);
     }
 
     // prop button handler
@@ -402,6 +404,16 @@ class AppBody extends React.Component {
         await this.props.refresh();
     }
 
+    // take the user to the transaction failed page.
+    throwTransactionFailed() {
+        this.setState({transactionFailed: true});
+    }
+
+    // take the user back to the home page.
+    home() {
+        this.setState({componentState: "home"});
+    }
+
     render() {
         let content;
         if (this.state.bodyLoading) {
@@ -446,7 +458,7 @@ class AppBody extends React.Component {
                     content = 
                     <div className = "container">
                         {prop_count}
-                        <ViewPropComponent isAny = {this.state.anyProp} contract = {this.props.contract}/>
+                        <ViewPropComponent isAny = {this.state.anyProp} contract = {this.props.contract} err = {this.throwTransactionFailed} home = {this.home}/>
                         <BackButton handler = {this.backHandler}/>
                     </div>
                 }
@@ -511,12 +523,12 @@ class ViewPropComponent extends React.Component {
      * Load a proposal by the given query (ID or ownerIndex).
      * @param {Number} query - The proposalID or the index to query the owner's proposal.
      * @param {Boolean} callerIsVoter - True: query IDs; False: query indices.
-     * @returns {Object} The Proposal Object. { uint256 id, address proposer, string title, uint256 yay_count, uint256 nay_count, uint256 total_deposit, uint256 begin_block_number, uint256 end_block_number }
+     * @returns {Object} The Proposal Object. { uint256 id, address proposer, string title, uint256 yay_count, uint256 nay_count, uint256 total_deposit, uint256 begin_block_number, uint256 end_block_number, uint256 max_deposit }
      */
     async loadProposal(query, callerIsVoter) {
         const vote = this.props.contract;
         const accounts = await window.web3.eth.getAccounts();
-        let resItem = new Array(8);
+        let resItem = new Array(9);
         if (callerIsVoter) {
             query--;
         }
@@ -534,7 +546,8 @@ class ViewPropComponent extends React.Component {
             nay_count: window.web3.utils.fromWei(resItem[4].toString(), "ether"),
             total_deposit: window.web3.utils.fromWei(resItem[5].toString(), "ether"),
             begin_block_number: resItem[6],
-            end_block_number: resItem[7]
+            end_block_number: resItem[7],
+            max_deposit: window.web3.utils.fromWei(resItem[8].toString(), "ether"),
         }
         return res;
     }
@@ -555,7 +568,7 @@ class ViewPropComponent extends React.Component {
     
     /**
      * Initialize the Proposal Component
-     * @param {object} props - props.contract: contract ABI, props.isAny: True, if user is looking for any proposal. False otherwise, user is looking for their own proposal.
+     * @param {object} props - props.contract: contract ABI; props.isAny: True, if user is looking for any proposal. False otherwise, user is looking for their own proposal; props.err: throws transaction failed page
      */
     constructor(props) {
         super(props);
@@ -576,6 +589,7 @@ class ViewPropComponent extends React.Component {
         this.inputHandler = this.inputHandler.bind(this);
         this.voteHandler = this.voteHandler.bind(this);
         this.depositHandler = this.depositHandler.bind(this);
+        this.submitVoteHandler = this.submitVoteHandler.bind(this);
     }
 
     // updates the input states to trigger didComponentUpdate() to reload proposal.
@@ -598,8 +612,58 @@ class ViewPropComponent extends React.Component {
         }
     }
 
-    async depositHandler() {
+    // update user input deposit
+    depositHandler(event) {
+        this.setState({ethDeposited: event.target.value});
+    }
 
+    // user submit their votes.
+    async submitVoteHandler() {
+        const vote = this.props.contract;
+        const accounts = await window.web3.eth.getAccounts();
+        const sender = accounts[0];
+
+        const weiBal = await window.web3.eth.getBalance(sender);
+        const ethBal = window.web3.utils.fromWei(weiBal, "ether");
+
+        const inputAmount = this.state.ethDeposited;
+        const inputInWei = window.web3.utils.toWei(inputAmount.toString(), "ether");
+        const voteIsValid = !(this.state.yaySelected && this.state.naySelected) && (this.state.yaySelected || this.state.naySelected);
+        const votesYay = this.state.yaySelected && !this.state.naySelected;
+
+        if (voteIsValid) {
+            // verify input amount before initiating transaction.
+            if (inputAmount == 0) {
+                window.alert("Deposit amount can not be zero.");
+            }
+            else if (inputAmount > this.state.proposal.max_deposit) {
+                window.alert("Deposit amount exceeded allowance.");
+            }
+            else if (inputAmount > parseFloat(ethBal)) {
+                window.alert("Your balance is insufficient.");
+            }
+            else {
+                const estimateGasLimit = await vote.methods.vote(this.state.proposal.id, votesYay).estimateGas({from: sender});
+                // vote
+                try {
+                    await vote.methods.vote(this.state.proposal.id, votesYay).send({from: sender, gas: estimateGasLimit, value: inputInWei})
+                    .on("transactionHash", (hash) => {
+                        window.alert("Vote casted successfully.");
+                        this.props.home();
+                    })
+                    .on("error", (error) => {
+                        this.props.err();
+                        console.error("Transaction failed (Preston)", error);
+                    });
+                } catch (error) {
+                    this.props.err();
+                    console.error("Rejection hurts (Preston)", error);
+                }
+            }
+        }
+        else {
+            window.alert("Vote or die."); // South Park Reference.
+        }
     }
 
     render() {
@@ -622,7 +686,7 @@ class ViewPropComponent extends React.Component {
             if (this.state.voted === "0") {
                 if (propIsStillActive) {
                     voteContent = 
-                    <div className = "container">
+                    <div className = "container" style = {{border: "groove blue", padding: "10px"}}>
                         <div className = "col text-center">
                             <p> Cast Your Vote: </p>
                             <div className = "row">
@@ -631,7 +695,8 @@ class ViewPropComponent extends React.Component {
                             </div>
                             <div className = "row">
                                 <div className = "col"> Deposit Amount:  </div>
-                                <div className = "col"> <input type = "number" value = {this.state.ethDeposited} onClick = {this.submitVoteHandler}/> </div>
+                                <div className = "col"> <input type = "number" value = {this.state.ethDeposited} onChange = {this.depositHandler}/> </div>
+                                <div className = "col"> <button onClick = {this.submitVoteHandler}> VOTE ✔ </button> </div>
                             </div>
                         </div>
                     </div>
@@ -674,7 +739,7 @@ class ViewPropComponent extends React.Component {
             let nayPercent = (this.state.proposal.nay_count) * 100 / this.state.proposal.total_deposit;
             propBody = 
             <div className = "container"> 
-                <p> Proposal ID #{this.state.proposal.id} </p>
+                <p style = {{fontWeight: "bold"}}> Proposal ID #{this.state.proposal.id} </p>
                 <div className = "col">
                     <div className = "row">
                         <div className = "col"> <h1> {this.state.proposal.title} </h1> </div> 
@@ -684,8 +749,12 @@ class ViewPropComponent extends React.Component {
                        <div className = "col"> <p> {this.state.proposal.proposer} </p></div> 
                     </div>
                     <div className = "row">
-                       <div className = "col"> <label> Total Deposit:  </label> </div>
+                       <div className = "col"> <label> Total ETH Staked:  </label> </div>
                        <div className = "col"> <p> {this.state.proposal.total_deposit} ETH </p> </div>   
+                    </div>
+                    <div className = "row">
+                       <div className = "col"> <label> Maximum ETH Voting Allowance:  </label> </div>
+                       <div className = "col"> <p> {this.state.proposal.max_deposit} ETH </p> </div>   
                     </div>
                     <div className = "row">
                        <div className = "col"> <label> Yay %:  </label> </div>
@@ -743,6 +812,8 @@ class ViewPropComponent extends React.Component {
     async componentDidUpdate(prevProps, prevState) {
         // input changed.
         let isOwner = !this.props.isAny;
+        // // Potential bug
+        // let voteChanged = (this.state.proposals.yay_count !== prevState.state.proposals.yay_count) || (this.state.proposals.nay_count !== prevState.state.proposals.nay_count)
         if ((prevState.input !== this.state.input && this.state.input !== "" && this.state.input !== "0")) {
             const proposal = await this.loadProposal(this.state.input, isOwner);
             const voted = await this.fetchVote(this.state.input);
