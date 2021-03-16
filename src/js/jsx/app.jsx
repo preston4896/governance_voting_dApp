@@ -233,6 +233,7 @@ class AppBody extends React.Component {
         this.depositHandler = this.depositHandler.bind(this);
         this.submitHandler = this.submitHandler.bind(this);
         this.redeemHandler = this.redeemHandler.bind(this);
+        this.withdrawHandler = this.withdrawHandler.bind(this);
     }
 
     // prop button handler
@@ -306,6 +307,7 @@ class AppBody extends React.Component {
                     this.setState({newOffset: ""});
                     this.setState({amount: "0.001"});
                     this.setState({componentState: "home"});
+                    this.props.refresh();
                     window.alert("Your Proposal Has Been Successfully Created.");
                 })
                 .on("error", (error) => {
@@ -320,10 +322,11 @@ class AppBody extends React.Component {
         }
     }
 
+    // Redeem ETH
     async redeemHandler() {
         this.setState({bodyLoading: true});
         const count = await this.loadPropCount(true);
-        let message = "You have not created or voted on any proposals yet. It is unlikely that you would have any redeemable ETH. Proceeding this option will incur on a transaction (gas) fee. Continue?";
+        let message = "You have not created or voted on any proposals yet. It is unlikely that you would have accrued any redeemable ETH. Proceeding this option will incur a transaction (gas) fee. Continue?";
         let confirm;
         if (count == 0) {
             confirm = window.confirm(message);
@@ -344,7 +347,7 @@ class AppBody extends React.Component {
             try {
                 await vote.methods.updateEthEarned().send({from: sender, gas: estimateGasLimit})
                 .on("transactionHash", (hash) => {
-                    window.alert("Your Transaction Has Been Confirmed.");
+                    window.alert("Your transaction has been confirmed.");
                 })
                 .on("error", (error) => {
                     this.setState({transactionFailed: true});
@@ -356,10 +359,48 @@ class AppBody extends React.Component {
             }
             this.setState({bodyLoading: false});
             this.setState({componentState: "home"});
+            await this.props.refresh();
         }
     }
 
-    // TODO: Withdraw ETH.
+    // Withdraw ETH.
+    async withdrawHandler() {
+        this.setState({bodyLoading: true});
+        window.alert("Make sure that you clicked on Redeem ETH to claim all of your withdrawable ETH before withdrawing.");
+
+        // load account info
+        const vote = this.props.contract;
+        const accounts = await window.web3.eth.getAccounts();
+        const sender = accounts[0];
+
+        // load balance
+        const withdrawable = await vote.methods.get_withdraw().call({from: sender});
+
+        if (withdrawable == 0) {
+            window.alert("You do not have any withdrawable ETH.");
+        }
+        else {
+            const estimateGasLimit = await vote.methods.withdrawEth().estimateGas({from: sender});
+            // withdraw accounts.
+            try {
+                await vote.methods.withdrawEth().send({from: sender, gas: estimateGasLimit})
+                .on("transactionHash", (hash) => {
+                    window.alert("Funds have been withdrawned.");
+                })
+                .on("error", (error) => {
+                    this.setState({transactionFailed: true});
+                    console.error("Transaction failed (Preston)", error);
+                });
+            } catch (error) {
+                this.setState({transactionFailed: true});
+                console.error("Rejection hurts (Preston)", error);
+            }
+        }
+
+        this.setState({bodyLoading: false});
+        this.setState({componentState: "home"});
+        await this.props.refresh();
+    }
 
     render() {
         let content;
@@ -382,7 +423,7 @@ class AppBody extends React.Component {
                         <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button title = "View The Proposals That You Created." onClick = {this.propOwnHandler}> Find My Proposals </button> </div>
                         <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button title = "A minimum of 0.001 ETH is required." onClick = {this.createHandler}> Create A Proposal and Stake ETH </button> </div>
                         <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button title = "Redeem Your Total Withdrawable ETH Amount." onClick = {this.redeemHandler}> Redeem ETH </button> </div>
-                        <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button title = "Withdraw all ETH to your wallet. Make sure to redeem withdrawable ETH first."> Withdraw ETH </button> </div>
+                        <div className = "row-sm-12 rol-md-6 rol-lg-2"> <button title = "Withdraw all ETH to your wallet. Make sure to redeem withdrawable ETH first." onClick = {this.withdrawHandler}> Withdraw ETH </button> </div>
                     </div>
                 }
                 else if (this.state.componentState == "prop") {
