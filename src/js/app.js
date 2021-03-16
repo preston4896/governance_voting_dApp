@@ -685,9 +685,11 @@ class ViewPropComponent extends React.Component {
      */
     async loadProposal(query, callerIsVoter) {
         const vote = this.props.contract;
+        const accounts = await window.web3.eth.getAccounts();
         let resItem = new Array(8);
+        console.log("isOwner: ", callerIsVoter);
         try {
-            resItem = await votes.methods.get_proposals(query, callerIsVoter).call(8);
+            resItem = await vote.methods.get_proposals(query, callerIsVoter).call({ from: accounts[0] });
         } catch (error) {
             window.alert("Unable to load proposal.");
         }
@@ -695,9 +697,9 @@ class ViewPropComponent extends React.Component {
             id: resItem[0],
             proposer: resItem[1],
             title: resItem[2],
-            yay_count: resItem[3],
-            nay_count: resItem[4],
-            total_deposit: resItem[5],
+            yay_count: window.web3.utils.fromWei(resItem[3].toString(), "ether"),
+            nay_count: window.web3.utils.fromWei(resItem[4].toString(), "ether"),
+            total_deposit: window.web3.utils.fromWei(resItem[5].toString(), "ether"),
             begin_block_number: resItem[6],
             end_block_number: resItem[7]
         };
@@ -711,8 +713,15 @@ class ViewPropComponent extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            proposal: undefined
+            proposal: undefined,
+            input: 0
         };
+        this.inputHandler = this.inputHandler.bind(this);
+    }
+
+    // updates the input states to trigger didComponentUpdate() to reload proposal.
+    async inputHandler(event) {
+        this.setState({ input: event.target.value });
     }
 
     render() {
@@ -731,7 +740,225 @@ class ViewPropComponent extends React.Component {
                 )
             );
         } else {
-            propBody = React.createElement("div", { className: "container" });
+            let voteContent = React.createElement(
+                "p",
+                null,
+                " Vote Content Component. "
+            );
+            let yayPercent = this.state.proposal.yay_count * 100 / this.state.proposal.total_deposit;
+            let nayPercent = this.state.proposal.nay_count * 100 / this.state.proposal.total_deposit;
+            propBody = React.createElement(
+                "div",
+                { className: "container" },
+                React.createElement(
+                    "p",
+                    null,
+                    " Proposal ID #",
+                    this.state.proposal.id,
+                    " "
+                ),
+                React.createElement(
+                    "div",
+                    { className: "col" },
+                    React.createElement(
+                        "div",
+                        { className: "row" },
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "label",
+                                null,
+                                " Title:  "
+                            ),
+                            " "
+                        ),
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "p",
+                                null,
+                                " ",
+                                this.state.proposal.title,
+                                " "
+                            ),
+                            " "
+                        )
+                    ),
+                    React.createElement(
+                        "div",
+                        { className: "row" },
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "label",
+                                null,
+                                " Proposer:  "
+                            ),
+                            " "
+                        ),
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "p",
+                                null,
+                                " ",
+                                this.state.proposal.proposer,
+                                " "
+                            )
+                        )
+                    ),
+                    React.createElement(
+                        "div",
+                        { className: "row" },
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "label",
+                                null,
+                                " Total Deposit:  "
+                            ),
+                            " "
+                        ),
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "p",
+                                null,
+                                " ",
+                                this.state.proposal.total_deposit,
+                                " ETH "
+                            ),
+                            " "
+                        )
+                    ),
+                    React.createElement(
+                        "div",
+                        { className: "row" },
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "label",
+                                null,
+                                " Yay %:  "
+                            ),
+                            " "
+                        ),
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "p",
+                                { style: { color: "green" } },
+                                " ",
+                                yayPercent.toFixed(2),
+                                " % "
+                            ),
+                            "  "
+                        )
+                    ),
+                    React.createElement(
+                        "div",
+                        { className: "row" },
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "label",
+                                null,
+                                " Nay %:  "
+                            ),
+                            " "
+                        ),
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "p",
+                                { style: { color: "red" } },
+                                " ",
+                                nayPercent.toFixed(2),
+                                " % "
+                            ),
+                            "  "
+                        )
+                    ),
+                    React.createElement(
+                        "div",
+                        { className: "row" },
+                        "\\",
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "label",
+                                null,
+                                " Begin Block Number:  "
+                            ),
+                            " "
+                        ),
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "p",
+                                null,
+                                " ",
+                                this.state.proposal.begin_block_number,
+                                " "
+                            ),
+                            " "
+                        )
+                    ),
+                    React.createElement(
+                        "div",
+                        { className: "row" },
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "label",
+                                null,
+                                " End Block Number:  "
+                            ),
+                            " "
+                        ),
+                        React.createElement(
+                            "div",
+                            { className: "col" },
+                            " ",
+                            React.createElement(
+                                "p",
+                                null,
+                                " ",
+                                this.state.proposal.end_block_number,
+                                " "
+                            ),
+                            " "
+                        )
+                    )
+                ),
+                voteContent
+            );
         }
 
         // page body component
@@ -745,12 +972,7 @@ class ViewPropComponent extends React.Component {
                     React.createElement(
                         "div",
                         { className: "col" },
-                        React.createElement("input", { placeholder: "Enter Proposal ID" }),
-                        React.createElement(
-                            "button",
-                            null,
-                            " Search "
-                        )
+                        React.createElement("input", { placeholder: "Enter Proposal ID", type: "number", value: this.state.input, onChange: this.inputHandler })
                     )
                 ),
                 propBody
@@ -765,12 +987,7 @@ class ViewPropComponent extends React.Component {
                     React.createElement(
                         "div",
                         { className: "col" },
-                        React.createElement("input", { placeholder: "Enter Index Number" }),
-                        React.createElement(
-                            "button",
-                            null,
-                            " Search "
-                        )
+                        React.createElement("input", { placeholder: "Enter Index Number", type: "number", value: this.state.input, onChange: this.inputHandler })
                     )
                 ),
                 propBody
@@ -782,6 +999,15 @@ class ViewPropComponent extends React.Component {
             { className: "container", style: { border: "dotted black", margin: "10px" } },
             body
         );
+    }
+
+    async componentDidUpdate(prevProps, prevState) {
+        // input changed.
+        let isOwner = !this.props.isAny;
+        if (prevState.input !== this.state.input && this.state.input !== "" && this.state.input !== 0) {
+            const proposal = await this.loadProposal(this.state.input, isOwner);
+            this.setState({ proposal: proposal });
+        }
     }
 }
 

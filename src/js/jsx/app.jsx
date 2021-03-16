@@ -516,9 +516,11 @@ class ViewPropComponent extends React.Component {
      */
     async loadProposal(query, callerIsVoter) {
         const vote = this.props.contract;
+        const accounts = await window.web3.eth.getAccounts();
         let resItem = new Array(8);
+        console.log("isOwner: ", callerIsVoter);
         try {
-            resItem = await votes.methods.get_proposals(query, callerIsVoter).call(8);
+            resItem = await vote.methods.get_proposals(query, callerIsVoter).call({from: accounts[0]});
         } catch (error) {
             window.alert("Unable to load proposal.");
         }
@@ -527,9 +529,9 @@ class ViewPropComponent extends React.Component {
             id: resItem[0],
             proposer: resItem[1],
             title: resItem[2],
-            yay_count: resItem[3],
-            nay_count: resItem[4],
-            total_deposit: resItem[5],
+            yay_count: window.web3.utils.fromWei(resItem[3].toString(), "ether"),
+            nay_count: window.web3.utils.fromWei(resItem[4].toString(), "ether"),
+            total_deposit: window.web3.utils.fromWei(resItem[5].toString(), "ether"),
             begin_block_number: resItem[6],
             end_block_number: resItem[7]
         }
@@ -543,8 +545,15 @@ class ViewPropComponent extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            proposal: undefined
+            proposal: undefined,
+            input: 0
         }
+        this.inputHandler = this.inputHandler.bind(this);
+    }
+
+    // updates the input states to trigger didComponentUpdate() to reload proposal.
+    async inputHandler(event) {
+        this.setState({input: event.target.value});
     }
 
     render() {
@@ -559,10 +568,44 @@ class ViewPropComponent extends React.Component {
             </div>
         }
         else {
+            let voteContent = <p> Vote Content Component. </p>;
+            let yayPercent = (this.state.proposal.yay_count) * 100 / this.state.proposal.total_deposit;
+            let nayPercent = (this.state.proposal.nay_count) * 100 / this.state.proposal.total_deposit;
             propBody = 
             <div className = "container"> 
-                
-            </div>
+                <p> Proposal ID #{this.state.proposal.id} </p>
+                <div className = "col">
+                    <div className = "row">
+                        <div className = "col"> <label> Title:  </label> </div>
+                        <div className = "col"> <p> {this.state.proposal.title} </p> </div> 
+                    </div>
+                    <div className = "row">
+                       <div className = "col"> <label> Proposer:  </label> </div> 
+                       <div className = "col"> <p> {this.state.proposal.proposer} </p></div> 
+                    </div>
+                    <div className = "row">
+                       <div className = "col"> <label> Total Deposit:  </label> </div>
+                       <div className = "col"> <p> {this.state.proposal.total_deposit} ETH </p> </div>   
+                    </div>
+                    <div className = "row">
+                       <div className = "col"> <label> Yay %:  </label> </div>
+                       <div className = "col"> <p style = {{color: "green"}}> {yayPercent.toFixed(2)} % </p>  </div> 
+                    </div>
+                    <div className = "row">
+                       <div className = "col"> <label> Nay %:  </label> </div>
+                       <div className = "col"> <p style = {{color: "red"}}> {nayPercent.toFixed(2)} % </p>  </div> 
+                    </div>
+                    <div className = "row">\
+                       <div className = "col"> <label> Begin Block Number:  </label> </div>
+                       <div className = "col"> <p> {this.state.proposal.begin_block_number} </p> </div>
+                    </div>
+                    <div className = "row">
+                       <div className = "col"> <label> End Block Number:  </label> </div>
+                       <div className = "col"> <p> {this.state.proposal.end_block_number} </p> </div>
+                    </div>
+                </div>
+                {voteContent}
+            </div>;
         }
 
         // page body component
@@ -571,8 +614,7 @@ class ViewPropComponent extends React.Component {
             <div className = "container-fluid">
                 <div className = "row">
                     <div className = "col"> 
-                        <input placeholder = "Enter Proposal ID"/>
-                        <button> Search </button>
+                        <input placeholder = "Enter Proposal ID" type = "number" value = {this.state.input} onChange = {this.inputHandler}/>
                     </div>
                 </div>
                 {propBody}
@@ -583,8 +625,7 @@ class ViewPropComponent extends React.Component {
             <div className = "container-fluid">
                <div className = "row">
                     <div className = "col"> 
-                        <input placeholder = "Enter Index Number"/>
-                        <button> Search </button>
+                        <input placeholder = "Enter Index Number" type = "number" value = {this.state.input} onChange = {this.inputHandler}/>
                     </div>
                 </div>
                 {propBody}
@@ -596,6 +637,15 @@ class ViewPropComponent extends React.Component {
                 {body}
             </div>
         )
+    }
+
+    async componentDidUpdate(prevProps, prevState) {
+        // input changed.
+        let isOwner = !this.props.isAny;
+        if ((prevState.input !== this.state.input && this.state.input !== "" && this.state.input !== 0)) {
+            const proposal = await this.loadProposal(this.state.input, isOwner);
+            this.setState({proposal: proposal});
+        }
     }
 }
 
