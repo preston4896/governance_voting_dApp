@@ -42,6 +42,7 @@ module.exports = {
       skipDryRun: true
     },
     ropsten: {
+      // etherscan: https://ropsten.etherscan.io/address/0xf719d42fb61654e81dd0a3dff4be18c5af1a9fbb
       provider: () => new HDWalletProvider(
         mnemonic, `wss://ropsten.infura.io/ws/v3/${infuraApiKey}`
       ),

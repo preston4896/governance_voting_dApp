@@ -8,7 +8,7 @@ The dApp is currently deployed to the following Ethereum test networks:
 
 - [Goerli](https://goerli.etherscan.io/address/0x3418f4f8a01f51750bc448ecd624ebb669d82672)
 - [Rinkeby](https://rinkeby.etherscan.io/address/0xf719d42fb61654e81dd0a3dff4be18c5af1a9fbb)
-- [Ropsten](https://ropsten.etherscan.io/address/0xfade7649a885efd05574bc9872568ef7ff72c40b)
+- [Ropsten](https://ropsten.etherscan.io/address/0xf719d42fb61654e81dd0a3dff4be18c5af1a9fbb)
 
 Note: Do not run the `$ truffle test` command on any of the above testnet, the test cases provided can only work on a local blockchain (i.e. Ganache).
 
