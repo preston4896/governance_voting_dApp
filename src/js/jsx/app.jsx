@@ -579,7 +579,8 @@ class ViewPropComponent extends React.Component {
             yaySelected: false,
             naySelected: false,
             ethDeposited: "0",
-            voteCasted: false // toggled only when the user has not voted.
+            voteCasted: false, // toggled only when the user has not voted.
+            isLoading: false
         }
 
         // binding functions
@@ -640,20 +641,22 @@ class ViewPropComponent extends React.Component {
                 window.alert("Your balance is insufficient.");
             }
             else {
+                this.setState({isLoading: true});
                 // vote
                 try {
                     await vote.methods.vote(this.state.proposal.id, votesYay).send({from: sender, value: inputInWei})
                     .on("transactionHash", (hash) => {
-                        // potential bug
                         window.alert("Vote casted successfully.");
-                        // this.props.home();
+                        this.setState({isLoading: false});
                         this.setState({voteCasted: true});
                     })
                     .on("error", (error) => {
+                        this.setState({isLoading: false});
                         this.props.err();
                         console.error("Transaction failed (Preston)", error);
                     });
                 } catch (error) {
+                    this.setState({isLoading: false});
                     this.props.err();
                     console.error("Rejection hurts (Preston)", error);
                 }
@@ -668,136 +671,141 @@ class ViewPropComponent extends React.Component {
         let body;
         let propBody;
 
-        // proposalBody component
-        if (!this.state.proposal) {
-            propBody = 
-            <div className = "container"> 
-                <p> Waiting to fetch proposal... </p>
-            </div>
+        if (this.state.isLoading) {
+            body = <p> Loading... </p>
         }
         else {
-            let voteContent;
-            let propEndedContent = <div className = "content">  </div>;
-            const propIsStillActive = this.state.proposal.end_block_number > this.state.currentBlockNumber;
+            // proposalBody component
+            if (!this.state.proposal) {
+                propBody = 
+                <div className = "container"> 
+                    <p> Waiting to fetch proposal... </p>
+                </div>
+            }
+            else {
+                let voteContent;
+                let propEndedContent = <div className = "content">  </div>;
+                const propIsStillActive = this.state.proposal.end_block_number > this.state.currentBlockNumber;
 
-            // not voted
-            if (this.state.voted === "0") {
-                if (propIsStillActive) {
-                    voteContent = 
-                    <div className = "container" style = {{border: "groove blue", padding: "10px"}}>
-                        <div className = "col text-center">
-                            <p> Cast Your Vote: </p>
-                            <div className = "row">
-                                <div className = "col"> <label> <input type = "radio" value = "Yay" checked = {this.state.yaySelected} onChange = {this.voteHandler}/> YAY </label> </div>
-                                <div className = "col"> <label> <input type = "radio" value = "Nay" checked = {this.state.naySelected} onChange = {this.voteHandler}/> NAY </label> </div>
-                            </div>
-                            <div className = "row">
-                                <div className = "col"> Deposit Amount:  </div>
-                                <div className = "col"> <input type = "number" value = {this.state.ethDeposited} onChange = {this.depositHandler}/> </div>
-                                <div className = "col"> <button onClick = {this.submitVoteHandler}> VOTE ✔ </button> </div>
+                // not voted
+                if (this.state.voted === "0") {
+                    if (propIsStillActive) {
+                        voteContent = 
+                        <div className = "container" style = {{border: "groove blue", padding: "10px"}}>
+                            <div className = "col text-center">
+                                <p> Cast Your Vote: </p>
+                                <div className = "row">
+                                    <div className = "col"> <label> <input type = "radio" value = "Yay" checked = {this.state.yaySelected} onChange = {this.voteHandler}/> YAY </label> </div>
+                                    <div className = "col"> <label> <input type = "radio" value = "Nay" checked = {this.state.naySelected} onChange = {this.voteHandler}/> NAY </label> </div>
+                                </div>
+                                <div className = "row">
+                                    <div className = "col"> Deposit Amount:  </div>
+                                    <div className = "col"> <input type = "number" value = {this.state.ethDeposited} onChange = {this.depositHandler}/> </div>
+                                    <div className = "col"> <button onClick = {this.submitVoteHandler}> VOTE ✔ </button> </div>
+                                </div>
                             </div>
                         </div>
+                    }
+                    else if (!propIsStillActive || this.state.voteCasted){
+                        voteContent = <p> You can no longer vote for this proposal. </p>
+                    }
+                }
+                // voted
+                else if (this.state.voted === "1") {
+                    voteContent = <div> You voted: <p style = {{color: "green"}}> YAY </p> </div>
+                }
+                else if (this.state.voted === "2") {
+                    voteContent = <div> You voted: <p style = {{color: "red"}}> NAY </p> </div>
+                }
+
+                // proposal is no longer active.
+                if (!propIsStillActive) {
+                    let consensus;
+                    if (this.state.proposal.yay_count > this.state.proposal.nay_count) {
+                        consensus =
+                        <h3> The proposal ended with the <p style = {{fontWeight: "bold", color: "green"}}> YAYs </p> as the majority. </h3>
+                    }
+                    else if (this.state.proposal.yay_count < this.state.proposal.nay_count) {
+                        consensus =
+                        <h3> The proposal ended with the <p style = {{fontWeight: "bold", color: "red"}}> NAYs </p> as the majority. </h3>
+                    }
+                    else {
+                        consensus =
+                        <h2> The proposal ended with a <p style = {{fontWeight: "bold", color: "yellow"}}> TIE </p>. </h2>
+                    }
+
+                    propEndedContent =
+                    <div className = "container">
+                        {consensus}
                     </div>
                 }
-                else {
-                    voteContent = <p> You can no longer vote for this proposal. </p>
-                }
-            }
-            // voted
-            else if (this.state.voted === "1") {
-                voteContent = <div> You voted: <p style = {{color: "green"}}> YAY </p> </div>
-            }
-            else if (this.state.voted === "2") {
-                voteContent = <div> You voted: <p style = {{color: "red"}}> NAY </p> </div>
+
+                let yayPercent = (this.state.proposal.yay_count) * 100 / this.state.proposal.total_deposit;
+                let nayPercent = (this.state.proposal.nay_count) * 100 / this.state.proposal.total_deposit;
+                propBody = 
+                <div className = "container"> 
+                    <p style = {{fontWeight: "bold"}}> Proposal ID #{this.state.proposal.id} </p>
+                    <div className = "col">
+                        <div className = "row">
+                            <div className = "col"> <h1> {this.state.proposal.title} </h1> </div> 
+                        </div>
+                        <div className = "row">
+                        <div className = "col"> <label> Proposer:  </label> </div> 
+                        <div className = "col"> <p> {this.state.proposal.proposer} </p></div> 
+                        </div>
+                        <div className = "row">
+                        <div className = "col"> <label> Total ETH Staked:  </label> </div>
+                        <div className = "col"> <p> {this.state.proposal.total_deposit} ETH </p> </div>   
+                        </div>
+                        <div className = "row">
+                        <div className = "col"> <label> Maximum ETH Voting Allowance:  </label> </div>
+                        <div className = "col"> <p> {this.state.proposal.max_deposit} ETH </p> </div>   
+                        </div>
+                        <div className = "row">
+                        <div className = "col"> <label> Yay %:  </label> </div>
+                        <div className = "col"> <p style = {{color: "green"}}> {yayPercent.toFixed(2)} % </p>  </div> 
+                        </div>
+                        <div className = "row">
+                        <div className = "col"> <label> Nay %:  </label> </div>
+                        <div className = "col"> <p style = {{color: "red"}}> {nayPercent.toFixed(2)} % </p>  </div> 
+                        </div>
+                        <div className = "row">
+                        <div className = "col"> <label> Begin Block Number:  </label> </div>
+                        <div className = "col"> <p> {this.state.proposal.begin_block_number} </p> </div>
+                        </div>
+                        <div className = "row">
+                        <div className = "col"> <label> End Block Number:  </label> </div>
+                        <div className = "col"> <p> {this.state.proposal.end_block_number} </p> </div>
+                        </div>
+                    </div>
+                    {voteContent}
+                    {propEndedContent}
+                </div>;
             }
 
-            // proposal is no longer active.
-            if (!propIsStillActive) {
-                let consensus;
-                if (this.state.proposal.yay_count > this.state.proposal.nay_count) {
-                    consensus =
-                    <h3> The proposal ended with the <p style = {{fontWeight: "bold", color: "green"}}> YAYs </p> as the majority. </h3>
-                }
-                else if (this.state.proposal.yay_count < this.state.proposal.nay_count) {
-                    consensus =
-                    <h3> The proposal ended with the <p style = {{fontWeight: "bold", color: "red"}}> NAYs </p> as the majority. </h3>
-                }
-                else {
-                    consensus =
-                    <h2> The proposal ended with a <p style = {{fontWeight: "bold", color: "yellow"}}> TIE </p>. </h2>
-                }
-
-                propEndedContent =
-                <div className = "container">
-                    {consensus}
+            // page body component
+            if (this.props.isAny) {
+                body = 
+                <div className = "container-fluid">
+                    <div className = "row">
+                        <div className = "col"> 
+                            <input placeholder = "Enter Proposal ID" type = "number" value = {this.state.input} onChange = {this.inputHandler}/>
+                        </div>
+                    </div>
+                    {propBody}
                 </div>
             }
-
-            let yayPercent = (this.state.proposal.yay_count) * 100 / this.state.proposal.total_deposit;
-            let nayPercent = (this.state.proposal.nay_count) * 100 / this.state.proposal.total_deposit;
-            propBody = 
-            <div className = "container"> 
-                <p style = {{fontWeight: "bold"}}> Proposal ID #{this.state.proposal.id} </p>
-                <div className = "col">
-                    <div className = "row">
-                        <div className = "col"> <h1> {this.state.proposal.title} </h1> </div> 
-                    </div>
-                    <div className = "row">
-                       <div className = "col"> <label> Proposer:  </label> </div> 
-                       <div className = "col"> <p> {this.state.proposal.proposer} </p></div> 
-                    </div>
-                    <div className = "row">
-                       <div className = "col"> <label> Total ETH Staked:  </label> </div>
-                       <div className = "col"> <p> {this.state.proposal.total_deposit} ETH </p> </div>   
-                    </div>
-                    <div className = "row">
-                       <div className = "col"> <label> Maximum ETH Voting Allowance:  </label> </div>
-                       <div className = "col"> <p> {this.state.proposal.max_deposit} ETH </p> </div>   
-                    </div>
-                    <div className = "row">
-                       <div className = "col"> <label> Yay %:  </label> </div>
-                       <div className = "col"> <p style = {{color: "green"}}> {yayPercent.toFixed(2)} % </p>  </div> 
-                    </div>
-                    <div className = "row">
-                       <div className = "col"> <label> Nay %:  </label> </div>
-                       <div className = "col"> <p style = {{color: "red"}}> {nayPercent.toFixed(2)} % </p>  </div> 
-                    </div>
-                    <div className = "row">
-                       <div className = "col"> <label> Begin Block Number:  </label> </div>
-                       <div className = "col"> <p> {this.state.proposal.begin_block_number} </p> </div>
-                    </div>
-                    <div className = "row">
-                       <div className = "col"> <label> End Block Number:  </label> </div>
-                       <div className = "col"> <p> {this.state.proposal.end_block_number} </p> </div>
-                    </div>
-                </div>
-                {voteContent}
-                {propEndedContent}
-            </div>;
-        }
-
-        // page body component
-        if (this.props.isAny) {
-            body = 
-            <div className = "container-fluid">
+            else {
+                body = 
+                <div className = "container-fluid">
                 <div className = "row">
-                    <div className = "col"> 
-                        <input placeholder = "Enter Proposal ID" type = "number" value = {this.state.input} onChange = {this.inputHandler}/>
+                        <div className = "col"> 
+                            <input placeholder = "Enter Index Number" type = "number" value = {this.state.input} onChange = {this.inputHandler}/>
+                        </div>
                     </div>
+                    {propBody}
                 </div>
-                {propBody}
-            </div>
-        }
-        else {
-            body = 
-            <div className = "container-fluid">
-               <div className = "row">
-                    <div className = "col"> 
-                        <input placeholder = "Enter Index Number" type = "number" value = {this.state.input} onChange = {this.inputHandler}/>
-                    </div>
-                </div>
-                {propBody}
-            </div>
+            }
         }
 
         return (
