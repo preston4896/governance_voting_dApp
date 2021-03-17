@@ -26,12 +26,28 @@ module.exports = {
      network_id: "*",       // Any network (default: none)
     },
     goerli: {
+      // etherscan: https://goerli.etherscan.io/address/0x3418f4f8a01f51750bc448ecd624ebb669d82672
       provider: () => new HDWalletProvider(
         mnemonic, `wss://goerli.infura.io/ws/v3/${infuraApiKey}`
       ),
       network_id: 5,
       skipDryRun: true
     },
+    rinkeby: {
+      // etherscan: https://rinkeby.etherscan.io/address/0xfade7649a885efd05574bc9872568ef7ff72c40b
+      provider: () => new HDWalletProvider(
+        mnemonic, `wss://rinkeby.infura.io/ws/v3/${infuraApiKey}`
+      ),
+      network_id: 4,
+      skipDryRun: true
+    },
+    ropsten: {
+      provider: () => new HDWalletProvider(
+        mnemonic, `wss://ropsten.infura.io/ws/v3/${infuraApiKey}`
+      ),
+      network_id: 3,
+      skipDryRun: true
+    }
   },
 
   // define contracts directory
