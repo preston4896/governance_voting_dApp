@@ -62,10 +62,6 @@ class App extends React.Component {
     async loadData() {
         const vote = this.state.voteContract;
         const web3 = window.web3;
-        
-        // block number
-        let blockNum = await vote.methods.lastBlockNumber().call();
-        this.setState({lastSyncedBlock: blockNum});
 
         // account info
         const accounts = await web3.eth.getAccounts();
@@ -85,6 +81,14 @@ class App extends React.Component {
         this.setState({amountWithdrawable: withdrawable});
     }
 
+    /**
+     * Loads the current block number.
+     */
+     async getCurrentBlockNumber() {
+        const blockNum = await window.web3.eth.getBlockNumber();
+        this.setState({currentBlockNumber: blockNum});
+    }
+
     constructor(props) {
         super(props);
         this.state = {
@@ -98,7 +102,7 @@ class App extends React.Component {
 
             // network info
             network: "-1",
-            lastSyncedBlock: "0",
+            currentBlockNumber: "0",
 
             // contract
             voteContract: {},
@@ -136,7 +140,7 @@ class App extends React.Component {
                 <footer> 
                     <div className = "container">
                         <div className = "row">
-                            <div className = "col"> <p> Last Synced Block Number: {this.state.lastSyncedBlock} </p> </div>
+                            <div className = "col"> <p> Current Block Number: {this.state.currentBlockNumber} </p> </div>
                         </div>
                     </div>
                 </footer>;
@@ -171,6 +175,11 @@ class App extends React.Component {
             this.loadData();
         })
     }
+
+    // live-render block number
+    async componentDidUpdate() {
+        await this.getCurrentBlockNumber();
+    }
 }
 
 class AppBody extends React.Component {
@@ -194,14 +203,6 @@ class AppBody extends React.Component {
         return res;
     }
 
-    /**
-     * Loads the current block number.
-     */
-    async getCurrentBlockNumber() {
-        const blockNum = await window.web3.eth.getBlockNumber();
-        this.setState({currentBlockNumber: blockNum});
-    }
-
     constructor(props) {
         super(props); // props.contract: stores contact ABI
         this.state = {
@@ -218,9 +219,6 @@ class AppBody extends React.Component {
             newTitle: "",
             newOffset: "",
             amount: "0.001",
-
-            // Network
-            currentBlockNumber: 0
         }
 
         // Binding functions
@@ -491,7 +489,6 @@ class AppBody extends React.Component {
                             </div>
                             <button onClick = {this.submitHandler}> Submit </button>
                         </div>
-                        <p> Current Block Number: {this.state.currentBlockNumber} </p>
                         <p> An average block time is approximately 10-20 seconds (Mainnet, Rinkeby and Goerli). An offset of 1 would mean that your proposal would only last for 20 seconds at most. </p>
                         <p style = {{fontStyle: "strong", color: "red"}}> WARNING: You must deposit more than 0.001 ETH, otherwise the transaction will fail. </p>
                         <BackButton handler = {this.backHandler}/>
@@ -505,11 +502,6 @@ class AppBody extends React.Component {
                 {content}
             </div>
         )
-    }
-
-    // live-render block number
-    async componentDidUpdate() {
-        await this.getCurrentBlockNumber();
     }
 }
 
@@ -686,7 +678,7 @@ class ViewPropComponent extends React.Component {
         else {
             let voteContent;
             let propEndedContent = <div className = "content">  </div>;
-            const propIsStillActive = this.state.proposal.end_block_number >= this.state.currentBlockNumber;
+            const propIsStillActive = this.state.proposal.end_block_number > this.state.currentBlockNumber;
 
             // not voted
             if (this.state.voted === "0") {
