@@ -688,7 +688,7 @@ class ViewPropComponent extends React.Component {
 
                 // not voted
                 if (this.state.voted === "0") {
-                    if (propIsStillActive && this.state.voteCasted === false) {
+                    if (propIsStillActive && this.state.voteCasted === false && this.props.isAny) {
                         voteContent = 
                         <div className = "container" style = {{border: "groove blue", padding: "10px"}}>
                             <div className = "col text-center">
