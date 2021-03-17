@@ -34,7 +34,7 @@ module.exports = {
       skipDryRun: true
     },
     rinkeby: {
-      // etherscan: https://rinkeby.etherscan.io/address/0xfade7649a885efd05574bc9872568ef7ff72c40b
+      // etherscan: https://rinkeby.etherscan.io/address/0xf719d42fb61654e81dd0a3dff4be18c5af1a9fbb
       provider: () => new HDWalletProvider(
         mnemonic, `wss://rinkeby.infura.io/ws/v3/${infuraApiKey}`
       ),

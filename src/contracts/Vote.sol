@@ -225,7 +225,18 @@ contract Vote {
      * @dev if ownerProposal is true, i is used as index of the myProposal Array. Otherwise, it is simply the proposal id.
      * @return the values that comform to the Proposal object.
      */
-    function get_proposals(uint i, bool ownerProposal) public view returns(uint256, address, string memory, uint256, uint256, uint256, uint256, uint256, uint256) {
+    function get_proposals(uint i, bool ownerProposal) public view returns
+    (
+        uint256, 
+        address, 
+        string memory, 
+        uint256, 
+        uint256, 
+        uint256, 
+        uint256, 
+        uint256, 
+        uint256
+    ) {
         Proposal memory prop;
         if (ownerProposal) {
             require(i < myProposal_count[msg.sender], "Invalid index");
