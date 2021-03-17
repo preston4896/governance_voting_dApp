@@ -28378,10 +28378,80 @@
       "links": {},
       "address": "0x04d7C838fE5C956a64387f46E8938D4CA6c04189",
       "transactionHash": "0xc52054c504d6ffc7b05d71e97790b10219ab667272a5374c8d2a2ef71fd5993d"
+    },
+    "1615955447310": {
+      "events": {
+        "0xdeb3fef274c9d29355266cba0a3c2a52d67eb1ef404a207ba6ef5916ba102090": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "id",
+              "type": "uint256"
+            }
+          ],
+          "name": "EndOfProposal",
+          "type": "event"
+        },
+        "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "_from",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "_to",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "Transfer",
+          "type": "event"
+        },
+        "0x749addf8eadeff63c43be59c27331be5c6d4fc9e82bbfbcf162321c9b35a95b4": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "_voter",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "id",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "bool",
+              "name": "votesYay",
+              "type": "bool"
+            }
+          ],
+          "name": "Voted",
+          "type": "event"
+        }
+      },
+      "links": {},
+      "address": "0xCE7d7D0c23c0849D7B804e7910611CE828Bf54Be",
+      "transactionHash": "0x9bee6a90f92e630b4c35af58d4bf6138d932593d1fdf3e077382838573e90ef5"
     }
   },
   "schemaVersion": "3.3.2",
-  "updatedAt": "2021-03-16T18:27:53.855Z",
+  "updatedAt": "2021-03-17T04:31:11.425Z",
   "networkType": "ethereum",
   "devdoc": {
     "methods": {

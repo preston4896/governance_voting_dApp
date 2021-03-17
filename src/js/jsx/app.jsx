@@ -126,7 +126,7 @@ class App extends React.Component {
                 info = 
                 <div>
                     <div className = "row"> 
-                        <div className = "col"> <p> Total staked: {this.state.amountDeposited} ETH </p> </div>
+                        <div className = "col"> <p> Total net debited: {this.state.amountDeposited} ETH </p> </div>
                         <div className = "col"> <p> Withdrawable amount: {this.state.amountWithdrawable} ETH </p>  </div>
                     </div>
                     <p> A minimum of 0.001 ETH is required to create a new proposal. </p>
@@ -454,7 +454,7 @@ class AppBody extends React.Component {
                     content = 
                     <div className = "container">
                         {prop_count}
-                        <ViewPropComponent isAny = {this.state.anyProp} contract = {this.props.contract} err = {this.throwTransactionFailed} home = {this.home}/>
+                        <ViewPropComponent isAny = {this.state.anyProp} contract = {this.props.contract} err = {this.throwTransactionFailed}/>
                         <BackButton handler = {this.backHandler}/>
                     </div>
                 }
@@ -578,7 +578,8 @@ class ViewPropComponent extends React.Component {
             // component state
             yaySelected: false,
             naySelected: false,
-            ethDeposited: "0"
+            ethDeposited: "0",
+            voteCasted: false // toggled only when the user has not voted.
         }
 
         // binding functions
@@ -643,8 +644,10 @@ class ViewPropComponent extends React.Component {
                 try {
                     await vote.methods.vote(this.state.proposal.id, votesYay).send({from: sender, value: inputInWei})
                     .on("transactionHash", (hash) => {
+                        // potential bug
                         window.alert("Vote casted successfully.");
-                        this.props.home();
+                        // this.props.home();
+                        this.setState({voteCasted: true});
                     })
                     .on("error", (error) => {
                         this.props.err();
@@ -807,9 +810,7 @@ class ViewPropComponent extends React.Component {
     async componentDidUpdate(prevProps, prevState) {
         // input changed.
         let isOwner = !this.props.isAny;
-        // // Potential bug
-        // let voteChanged = (this.state.proposals.yay_count !== prevState.state.proposals.yay_count) || (this.state.proposals.nay_count !== prevState.state.proposals.nay_count)
-        if ((prevState.input !== this.state.input && this.state.input !== "" && this.state.input !== "0")) {
+        if ((prevState.input !== this.state.input && this.state.input !== "" && this.state.input !== "0") || (prevState.voteCasted !== this.state.voteCasted)) {
             const proposal = await this.loadProposal(this.state.input, isOwner);
             const voted = await this.fetchVote(this.state.input);
             const blockNum = await window.web3.eth.getBlockNumber();

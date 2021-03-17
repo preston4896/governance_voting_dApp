@@ -140,7 +140,7 @@ class App extends React.Component {
                             React.createElement(
                                 "p",
                                 null,
-                                " Total staked: ",
+                                " Total net debited: ",
                                 this.state.amountDeposited,
                                 " ETH "
                             ),
@@ -585,7 +585,7 @@ class AppBody extends React.Component {
                         "div",
                         { className: "container" },
                         prop_count,
-                        React.createElement(ViewPropComponent, { isAny: this.state.anyProp, contract: this.props.contract, err: this.throwTransactionFailed, home: this.home }),
+                        React.createElement(ViewPropComponent, { isAny: this.state.anyProp, contract: this.props.contract, err: this.throwTransactionFailed }),
                         React.createElement(BackButton, { handler: this.backHandler })
                     );
                 } else if (this.state.componentState == "create") {
@@ -746,7 +746,9 @@ class ViewPropComponent extends React.Component {
             // component state
             yaySelected: false,
             naySelected: false,
-            ethDeposited: "0"
+            ethDeposited: "0",
+            voteCasted: false // toggled only when the user has not voted.
+
 
             // binding functions
         };this.inputHandler = this.inputHandler.bind(this);
@@ -805,8 +807,10 @@ class ViewPropComponent extends React.Component {
                 // vote
                 try {
                     await vote.methods.vote(this.state.proposal.id, votesYay).send({ from: sender, value: inputInWei }).on("transactionHash", hash => {
+                        // potential bug
                         window.alert("Vote casted successfully.");
-                        this.props.home();
+                        // this.props.home();
+                        this.setState({ voteCasted: true });
                     }).on("error", error => {
                         this.props.err();
                         console.error("Transaction failed (Preston)", error);
@@ -1277,9 +1281,7 @@ class ViewPropComponent extends React.Component {
     async componentDidUpdate(prevProps, prevState) {
         // input changed.
         let isOwner = !this.props.isAny;
-        // // Potential bug
-        // let voteChanged = (this.state.proposals.yay_count !== prevState.state.proposals.yay_count) || (this.state.proposals.nay_count !== prevState.state.proposals.nay_count)
-        if (prevState.input !== this.state.input && this.state.input !== "" && this.state.input !== "0") {
+        if (prevState.input !== this.state.input && this.state.input !== "" && this.state.input !== "0" || prevState.voteCasted !== this.state.voteCasted) {
             const proposal = await this.loadProposal(this.state.input, isOwner);
             const voted = await this.fetchVote(this.state.input);
             const blockNum = await window.web3.eth.getBlockNumber();
