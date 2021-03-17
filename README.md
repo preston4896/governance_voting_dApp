@@ -59,6 +59,22 @@ Note: Do not run the `$ truffle test` command on any of the above testnet, the t
     - Dependencies used in this project.
 
 ---
+## Quick Demo On The Live App
+
+1. Click [here](https://prestonong.com/advanca_voting_dApp/) to the app and make sure that you have MetaMask installed.
+
+2. Connect your Metamask wallet to the app on the Rinkeby Network.
+
+3. Click on "Search or Vote On Proposal(s)", then entered "2" in the input field. This would load the proposal with ID #2.
+
+4. You should see something similar to the screenshot below:
+![image](./img/votePage.png)
+
+5. Make sure that you have some ETH in your account when you vote, otherwise the transaction will fail. You can get some test ETH from the [faucet](https://faucet.rinkeby.io/).
+
+6. Once you picked a vote and initiated a transaction, it should take up to 20-30 seconds to include your vote in the proposal.
+
+---
 ## Instructions to use on your local machine
 
 1. Clone this repository. `$ git clone https://github.com/preston4896/advanca_voting_dApp.git`
@@ -75,6 +91,11 @@ Note: Do not run the `$ truffle test` command on any of the above testnet, the t
     - `$ npm run compile` : Compiles the JSX code to JS code using Babel.
     - `$ npm run build` : Minifies the JS file to be used for production.
     - `$ npm run start` : Creates a server and starts the dApp locally.
+
+## Known Issue(s):
+1. Transaction has been consistently failing on the Goerli Testnet due to Out Of Gas error.
+
+2. (Not necessarily an issue, more of a poor UX design) The loading screen would usually stay for about 20 seconds long, this is because it takes an average of 20 seconds to include a transaction into a new block. (Probably longer on Rospten, being a PoW network)
 
 ## Future Improvements
 
