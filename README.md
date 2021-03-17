@@ -1,10 +1,10 @@
 # Voting dApp by Preston Ong
 
 ## Description:
-A very simple decentralized web application for users to submit a proposal with binary options that can be voted with either a yay or nay option. Users who picked the majority vote by the end of a proposal can claim ETH and withdraw to their accounts. The app is now live and can be accessed [here.](https://prestonong.com/advanca_voting_dApp/)
+A very simple decentralized web application (dApp) for users to submit a proposal with binary options that can be voted with either a yay or nay option. Users who picked the majority vote by the end of a proposal can claim ETH and withdraw to their accounts. The app is now live and can be accessed [here.](https://prestonong.com/advanca_voting_dApp/)
 
 ## Available Networks:
-The dApp is currently deployed to the following Ethereum test networks:
+The smart contract is currently deployed to the following Ethereum test networks:
 
 - [Goerli](https://goerli.etherscan.io/address/0x3418f4f8a01f51750bc448ecd624ebb669d82672)
 - [Rinkeby](https://rinkeby.etherscan.io/address/0xf719d42fb61654e81dd0a3dff4be18c5af1a9fbb)
@@ -38,16 +38,16 @@ Note: Do not run the `$ truffle test` command on any of the above testnet, the t
     - An example json file looks like the following:
     ```
     {
-        "mnemonic": <insert mnemonic seed phrase here>
-        "infuraApiKey" : <insert Infura API key here>
+        "mnemonic": <insert mnemonic seed phrase here>,
+        "infuraApiKey" : <insert Infura API key here>,
         "etherscanApiKey" : <insert Etherscan API key here, for contract verification purpose>
     }
     ```
 2. `Vote.sol`
-    - The backend smart contract of this dApp, act as an escrow when users submitted their proposals and/or votes. It also ensures that users with the winning votes would get their ETH funds back.
+    - The backend smart contract of this dApp, acts as an escrow when users submitted their proposals and/or votes. It also ensures that users with the winning votes would get their ETH funds withdrawn.
 
 3. `app.min.js`
-    - Minified JS code that renders the front-end DOM by using the ReactJS framework.
+    - Minified JS code that renders the front-end DOM components by using the ReactJS framework.
 
 4. `testVote.test.js`
     - Test cases for unit testing the smart contract to ensure all functions are working as expected.
