@@ -647,7 +647,6 @@ class ViewPropComponent extends React.Component {
                     await vote.methods.vote(this.state.proposal.id, votesYay).send({from: sender, value: inputInWei})
                     .on("transactionHash", (hash) => {
                         window.alert("Vote casted successfully.");
-                        this.setState({isLoading: false});
                         this.setState({voteCasted: true});
                     })
                     .on("error", (error) => {
@@ -689,7 +688,7 @@ class ViewPropComponent extends React.Component {
 
                 // not voted
                 if (this.state.voted === "0") {
-                    if (propIsStillActive) {
+                    if (propIsStillActive && this.state.voteCasted === false) {
                         voteContent = 
                         <div className = "container" style = {{border: "groove blue", padding: "10px"}}>
                             <div className = "col text-center">
@@ -706,7 +705,7 @@ class ViewPropComponent extends React.Component {
                             </div>
                         </div>
                     }
-                    else if (!propIsStillActive || this.state.voteCasted){
+                    else {
                         voteContent = <p> You can no longer vote for this proposal. </p>
                     }
                 }
@@ -825,6 +824,7 @@ class ViewPropComponent extends React.Component {
             this.setState({proposal: proposal});
             this.setState({voted: voted});
             this.setState({currentBlockNumber: blockNum});
+            this.setState({isLoading: false});
         }
     }
 }
