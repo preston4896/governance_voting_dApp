@@ -296,35 +296,28 @@ class AppBody extends React.Component {
             const sender = accounts[0];
             const vote = this.props.contract;
 
-            const bal = await window.web3.eth.getBalance(sender);
-
             const weiAmount = web3.utils.toWei(this.state.amount.toString(), "ether");
 
-            if (bal < weiAmount) {
-                window.alert("Insufficient balance.");
+            // submit proposal
+            try {
+                await vote.methods.create(this.state.newTitle, this.state.newOffset).send({from: sender, value: weiAmount})
+                .on("transactionHash", (hash) => {
+                    this.setState({newTitle: ""});
+                    this.setState({newOffset: ""});
+                    this.setState({amount: "0.001"});
+                    this.setState({componentState: "home"});
+                    this.props.refresh();
+                    window.alert("Your Proposal Has Been Successfully Created.");
+                })
+                .on("error", (error) => {
+                    this.setState({transactionFailed: true});
+                    console.error("Transaction failed (Preston)", error);
+                });
+            } catch (error) {
+                this.setState({transactionFailed: true});
+                console.error("Rejection hurts (Preston)", error);
             }
 
-            else {
-                // submit proposal
-                try {
-                    await vote.methods.create(this.state.newTitle, this.state.newOffset).send({from: sender, value: weiAmount})
-                    .on("transactionHash", (hash) => {
-                        this.setState({newTitle: ""});
-                        this.setState({newOffset: ""});
-                        this.setState({amount: "0.001"});
-                        this.setState({componentState: "home"});
-                        this.props.refresh();
-                        window.alert("Your Proposal Has Been Successfully Created.");
-                    })
-                    .on("error", (error) => {
-                        this.setState({transactionFailed: true});
-                        console.error("Transaction failed (Preston)", error);
-                    });
-                } catch (error) {
-                    this.setState({transactionFailed: true});
-                    console.error("Rejection hurts (Preston)", error);
-                }
-            }
             this.setState({bodyLoading: false});
         }
     }

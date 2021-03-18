@@ -11,7 +11,6 @@ contract Vote {
 
     constructor() public {
         admin = msg.sender;
-        lastBlockNumber = block.number;
     }
 
     /**
@@ -47,14 +46,12 @@ contract Vote {
     // Proposal Variables
     uint256 public total_proposals;
     mapping (uint256 => Proposal) public Proposals; // Find the proposals with the given ID.
-    mapping (uint256 => uint256[]) internal active_proposals; // block end number mapped to array of proposal ids.
+    mapping (uint256 => uint256) internal activeIds; // index mapped to proposal ids.
+    uint256 internal act_index; // counts the number of active proposals.
     uint256[] internal inactiveIds; // track inactive proposals to claim eth.
-    uint256 public endProp_count; // counts the number of inactive proposals.
+    uint256 internal endProp_count; // counts the number of inactive proposals.
     mapping (address => uint256[]) internal myProposalIds; // users to locate their created/voted proposal by id.
     mapping (address => uint256) public myProposal_count; // counts the number of proposals the user created.
-
-    // Keep track of processed block number
-    uint public lastBlockNumber;
 
     // Votes variables
     mapping (uint256 => mapping (address => Voter_Status)) internal addressToVote; // Show votes given by address and id.
@@ -70,17 +67,16 @@ contract Vote {
     event EndOfProposal(uint256 id); // Proposal ended event trigger.
 
     /**
-     * @dev Modifier to be called periodically to detect proposals that are no longer active and call for the winner.
+     * @dev Modifier to be called periodically to detect proposals that are no longer active and determine the winner.
      */
     modifier checkWinner() {
         // update proposals since last update to current block number.
         uint256 current = block.number;
-        for (uint i = lastBlockNumber.add(1); i <= current; i++) {
-            uint256[] memory endProposalIds = active_proposals[i];
-            uint n = endProposalIds.length;
-            for (uint j = 0; j < n; j++) {
-                uint id = endProposalIds[j];
-                Proposal memory prop = Proposals[id];
+        for (uint i = endProp_count; i < act_index; i++) {
+            uint id = activeIds[i];
+            Proposal memory prop = Proposals[id];
+            if (prop.end_block_number <= current) {
+                // determine the winner.
                 if (prop.yay_count > prop.nay_count) {
                     winVotes[id] = Voter_Status.YAY;
                 }
@@ -90,13 +86,17 @@ contract Vote {
                 else {
                     winVotes[id] = Voter_Status.UNDECIDED;
                 }
-                inactiveIds.push(id);
+
+                // remove from activeIds.
+                if (i != endProp_count) {
+                    uint temp = activeIds[endProp_count];
+                    activeIds[endProp_count] = id;
+                    activeIds[i] = temp;
+                }
                 endProp_count = endProp_count.add(1);
-                emit EndOfProposal(id);
+                inactiveIds.push(id);
             }
-            delete active_proposals[i];
         }
-        lastBlockNumber = current;
         _;
     }
 
@@ -147,7 +147,9 @@ contract Vote {
         uint maximum = msg.value.mul(90).div(100); // voters can only deposit 90% of the proposer's amount at most -- prevention of whales.
         Proposal memory newProposal = Proposal(id, msg.sender, title, msg.value, 0, msg.value, block.number, endBlock, maximum);
         Proposals[total_proposals] = newProposal;
-        active_proposals[newProposal.end_block_number].push(id);
+
+        activeIds[act_index] = id;
+        act_index = act_index.add(1);
         myProposalIds[msg.sender].push(id);
         myProposal_count[msg.sender] = myProposal_count[msg.sender].add(1);
 
