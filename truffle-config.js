@@ -26,7 +26,7 @@ module.exports = {
      network_id: "*",       // Any network (default: none)
     },
     goerli: {
-      // etherscan: https://goerli.etherscan.io/address/0x3418f4f8a01f51750bc448ecd624ebb669d82672
+      // etherscan: https://goerli.etherscan.io/address/0x0865D9d55feF90F6E338876a754422e7292dB2f3
       provider: () => new HDWalletProvider(
         mnemonic, `wss://goerli.infura.io/ws/v3/${infuraApiKey}`
       ),
@@ -34,7 +34,7 @@ module.exports = {
       skipDryRun: true
     },
     rinkeby: {
-      // etherscan: https://rinkeby.etherscan.io/address/0xf719d42fb61654e81dd0a3dff4be18c5af1a9fbb
+      // etherscan: https://rinkeby.etherscan.io/address/0x052736102b9816ba81fe45f3af28c136bcd19e4d
       provider: () => new HDWalletProvider(
         mnemonic, `wss://rinkeby.infura.io/ws/v3/${infuraApiKey}`
       ),
@@ -42,7 +42,7 @@ module.exports = {
       skipDryRun: true
     },
     ropsten: {
-      // etherscan: https://ropsten.etherscan.io/address/0xf719d42fb61654e81dd0a3dff4be18c5af1a9fbb
+      // etherscan: https://ropsten.etherscan.io/address/0x5ece8be78d42010ccc16aeddccf42768e87315b7
       provider: () => new HDWalletProvider(
         mnemonic, `wss://ropsten.infura.io/ws/v3/${infuraApiKey}`
       ),

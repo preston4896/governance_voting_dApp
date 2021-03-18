@@ -1,6 +1,6 @@
 # Voting dApp by Preston Ong
 
-## **Bug Alert: [High Priority]** 
+## **Bug Alert: [Status: Applying fixes, TBD]** 
 Out of Gas fee error across all test networks. The cause of this bug is due to the inactive call of the function modifier `checkWinner()` from `Vote.sol`. The function essentially relies on the user's constant interaction with the smart contract, to stay in sync with the current block number. This function is poorly implemented using for loops. The reason for this implementation is that the smart contract has to routinely check for expiring proposals and determine its winning vote. As a result, this function call can gradually become very expensive, if the app is not frequently used. For example, if the last synced block is 1000 and a user calls the `checkWinner()` modifier at current block = 10000, then the for loops will have to go through 9000 iterations. This is a very infeasible approach. I have to come up with a solution that can be automated to routinely look for proposals that are about to expire and keep in sync with the current block.
 
 ## Description:
@@ -9,9 +9,9 @@ A very simple decentralized web application (dApp) for users to submit a proposa
 ## Available Networks:
 The smart contract is currently deployed to the following Ethereum test networks:
 
-- [Goerli](https://goerli.etherscan.io/address/0x3418f4f8a01f51750bc448ecd624ebb669d82672)
-- [Rinkeby](https://rinkeby.etherscan.io/address/0xf719d42fb61654e81dd0a3dff4be18c5af1a9fbb)
-- [Ropsten](https://ropsten.etherscan.io/address/0xf719d42fb61654e81dd0a3dff4be18c5af1a9fbb)
+- [Goerli](https://goerli.etherscan.io/address/0x0865D9d55feF90F6E338876a754422e7292dB2f3)
+- [Rinkeby](https://rinkeby.etherscan.io/address/0x052736102b9816ba81fe45f3af28c136bcd19e4d)
+- [Ropsten](https://ropsten.etherscan.io/address/0x5ece8be78d42010ccc16aeddccf42768e87315b7)
 
 Note: Do not run the `$ truffle test` command on any of the above testnet, the test cases provided can only work on a local blockchain (i.e. Ganache).
 
@@ -68,7 +68,7 @@ Note: Do not run the `$ truffle test` command on any of the above testnet, the t
 
 2. Connect your Metamask wallet to the app on the Rinkeby Network.
 
-3. Click on "Search or Vote On Proposal(s)", then entered "2" in the input field. This would load the proposal with ID #2.
+3. Click on "Search or Vote On Proposal(s)", then entered "1" in the input field. This would load the proposal with ID #1.
 
 4. You should see something similar to the screenshot below:
 ![image](./img/votePage.png)
@@ -95,6 +95,10 @@ Note: Do not run the `$ truffle test` command on any of the above testnet, the t
     - `$ npm run build` : Minifies the JS file to be used for production.
     - `$ npm run start` : Creates a server and starts the dApp locally.
 
+## Known Issue(s)
+~~1. Transaction is still out of gas on the Goerli testnet even after fixing the gas limit vulnerability.~~
+
+2. The front-end UI sometimes rendered incorrectly, due to the delay in updating the app's component states.
 
 ## Future Improvements
 
@@ -103,4 +107,4 @@ Note: Do not run the `$ truffle test` command on any of the above testnet, the t
 2. Bonus features: Allowing users an alternative voting staking option by depositing their ERC20 tokens instead of ETHs.
 
 
-Last Updated: March 17th, 2021.
+Last Updated: March 19th, 2021.
