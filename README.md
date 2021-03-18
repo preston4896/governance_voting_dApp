@@ -1,5 +1,9 @@
 # Voting dApp by Preston Ong
 
+## **Bug Alert: [High Priority]** 
+Out of Gas fee error across all test networks. The cause of this bug is due to the inactive call of the function modifier `checkWinner()` from `Vote.sol`. The function essentially relies on the user's constant interaction with the smart contract, to stay in sync with the current block number. This function is poorly implemented using for loops. The reason for this implementation is because the smart contract has to routinely check for expiring proposals and determine its winning vote. As a result, this function call can gradually become very expensive, if the app is not frequently used. For example, if the last synced block is 1000 and a user calls the `checkWinner()` modifier at current block = 10000, then the for loops will have to go through 9000 iterations. This is simply a very infeasible approach. I have to come up with a solution that can be automated to routinely look for proposals that are about to expire and keep in sync with the current block.
+
+
 ## Description:
 A very simple decentralized web application (dApp) for users to submit a proposal with binary options that can be voted with either a yay or nay option. Users who picked the majority vote by the end of a proposal can claim ETH and withdraw to their accounts. The app is now live and can be accessed [here.](https://prestonong.com/advanca_voting_dApp/)
 
@@ -92,10 +96,6 @@ Note: Do not run the `$ truffle test` command on any of the above testnet, the t
     - `$ npm run build` : Minifies the JS file to be used for production.
     - `$ npm run start` : Creates a server and starts the dApp locally.
 
-## Known Issue(s):
-1. Transaction has been consistently failing on the Goerli Testnet due to Out Of Gas error.
-
-2. (Not necessarily an issue, more of a poor UX design) The loading screen would usually stay for about 20 seconds long, this is because it takes an average of 20 seconds to include a transaction into a new block. (Probably longer on Rospten, being a PoW network)
 
 ## Future Improvements
 
